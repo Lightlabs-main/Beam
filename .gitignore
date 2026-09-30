@@ -8,3 +8,5 @@ node_modules/
 indexer/generated/
 dist/
 *.tsbuildinfo
+indexer/.envio/
+deploy/.env

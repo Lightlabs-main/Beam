@@ -1,5 +1,8 @@
 import { indexer } from "envio";
-import { eventId, seqOf } from "./ids";
+
+// Entity ids and ordering: seq is strictly increasing across the chain (a block never holds a million logs).
+const eventId = (chainId: number, txHash: string, logIndex: number) => `${chainId}-${txHash}-${logIndex}`;
+const seqOf = (blockNumber: number, logIndex: number) => BigInt(blockNumber) * 1_000_000n + BigInt(logIndex);
 
 indexer.onEvent({ contract: "BeamClaims", event: "ChatterGiftSent" }, async ({ event, context }) => {
   const p = event.params;

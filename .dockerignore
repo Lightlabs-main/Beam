@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+**/node_modules
+**/dist
+contracts/out
+contracts/cache
+contracts/lib
+contracts/broadcast
+indexer

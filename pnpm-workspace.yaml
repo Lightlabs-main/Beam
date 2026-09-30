@@ -2,4 +2,4 @@ packages:
   - packages/*
   - server
   - web
-  - indexer
+# indexer/ is a standalone package with its own lockfile: Envio builds it in its own image.
