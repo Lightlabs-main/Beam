@@ -12,6 +12,7 @@ export default defineConfig({
         gift: resolve(import.meta.dirname, "gift.html"),
         wallet: resolve(import.meta.dirname, "wallet.html"),
         claim: resolve(import.meta.dirname, "claim.html"),
+        creator: resolve(import.meta.dirname, "creator.html"),
       },
     },
   },

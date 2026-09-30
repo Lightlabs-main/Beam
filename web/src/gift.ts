@@ -1,6 +1,8 @@
 // Gift page (/g/<creator>): passkey wallet → amount + message → gasless gift through the relayer.
 import {
+  type CreatorConfig,
   DropKind,
+  type Split,
   MAX_LABEL_BYTES,
   MAX_MESSAGE_BYTES,
   MAX_NAME_BYTES,
@@ -12,8 +14,12 @@ import {
   parseUsdc,
   signDrop,
   signGift,
+  signSplitGift,
+  splitOf,
   usdLabel,
+  verifyCreatorConfig,
 } from "@beam/shared";
+import type { Hex } from "viem";
 import { $, balances, copyText, loadConfig, randomSalt, saveSentDrop, short, signInCard } from "./pagekit.js";
 
 /** Unclaimed chatter gifts can be taken back after this (the sender can also take them back any time). */
@@ -36,6 +42,24 @@ async function main() {
   $("creator").textContent = short(creator);
 
   const { cfg, d } = await loadConfig();
+
+  // The creator's signed settings: their name, and the split every gift to them uses.
+  const settings = await fetch(`/api/creators/${creator}/config`)
+    .then((r) => r.json() as Promise<{ config: CreatorConfig | null; signature: Hex | null }>)
+    .catch(() => ({ config: null, signature: null }));
+  let split: Split | null = null;
+  if (settings.config && settings.signature && (await verifyCreatorConfig(d, settings.config, settings.signature))) {
+    const c = settings.config;
+    if (c.displayName) $("creator").textContent = c.displayName;
+    split = splitOf(c);
+    if (split) {
+      $("split-note").textContent = `Gifts to ${c.displayName || "this creator"} are shared: ${[
+        `${(split.bps[0]! / 100).toString()}% to them`,
+        ...c.shares.map((s) => `${s.bps / 100}% to ${s.label || short(s.address)}`),
+      ].join(" · ")}, in the same transaction.`;
+      $("split-note").hidden = false;
+    }
+  }
   const minUnits = parseUsdc(cfg.minGiftUsdc);
 
   const savedName = (() => {
@@ -169,8 +193,13 @@ async function main() {
       let claimUrl: string | null = null;
       const label = mode === "bomb" ? `${bombSlots()} chatters` : labelInput.value.trim();
       if (mode === "creator") {
-        const auth = await signGift(d, wallet.account, { to: creator as `0x${string}`, meta, value: amount, validBefore, salt: randomSalt() });
-        body = await post("/api/relay/gift", { to: creator, meta, auth });
+        if (split) {
+          const auth = await signSplitGift(d, wallet.account, { split, meta, value: amount, validBefore, salt: randomSalt() });
+          body = await post("/api/relay/split", { split, meta, auth });
+        } else {
+          const auth = await signGift(d, wallet.account, { to: creator as `0x${string}`, meta, value: amount, validBefore, salt: randomSalt() });
+          body = await post("/api/relay/gift", { to: creator, meta, auth });
+        }
       } else if (mode === "bomb") {
         // One seed makes every slot's claim key; the link carries only the seed.
         const seed = randomSalt();

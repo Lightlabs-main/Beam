@@ -124,14 +124,27 @@ function pushRecent(g: Gift) {
   recent.hidden = false;
 }
 
-const goalTarget = params.get("goal") ? parseUsdc(params.get("goal")!) : null;
-const goalSince = params.get("since");
+// Goal: from the URL when given, otherwise from the creator's signed settings (set on /creator).
+let goalTarget = params.get("goal") ? parseUsdc(params.get("goal")!) : null;
+let goalSince = params.get("since");
+let goalTitle = params.get("title") ?? "Goal";
+
+async function goalFromSettings() {
+  if (goalTarget !== null) return;
+  const { config } = await api<{ config: { goal: { usdc: string; title: string; since: number } | null } | null }>(
+    `/api/creators/${creator}/config`,
+  );
+  if (!config?.goal) return;
+  goalTarget = parseUsdc(config.goal.usdc);
+  goalSince = String(config.goal.since);
+  goalTitle = config.goal.title;
+}
 let goalNow = 0n;
 
 function renderGoal() {
   if (goalTarget === null || !show.has("goal")) return;
   $("goal").hidden = false;
-  $("goal-title").textContent = params.get("title") ?? "Goal";
+  $("goal-title").textContent = goalTitle;
   $("goal-now").textContent = dollars(goalNow);
   $("goal-target").textContent = dollars(goalTarget);
   const pct = goalTarget === 0n ? 100 : Number((goalNow * 10_000n) / goalTarget) / 100;
@@ -194,6 +207,7 @@ async function main() {
     setStatus("Beam: add ?creator=0x… to this overlay URL");
     return;
   }
+  await goalFromSettings().catch((e) => console.error(e));
   if (goalTarget !== null && !goalSince) setStatus("Beam: a goal needs &since=<unix time> to count from");
 
   if (show.has("qr")) {

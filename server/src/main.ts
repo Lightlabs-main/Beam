@@ -1,6 +1,7 @@
 import { formatEther } from "viem";
 import { ChainGiftFeed } from "./chainfeed.js";
 import { loadConfig } from "./config.js";
+import { CreatorStore } from "./creators.js";
 import { Indexed } from "./feed.js";
 import { createApp } from "./http.js";
 import { Relayer } from "./relayer.js";
@@ -10,7 +11,8 @@ const relayer = new Relayer(config);
 const indexed = new Indexed({ httpUrl: config.hasuraHttpUrl, wsUrl: config.hasuraWsUrl, adminSecret: config.hasuraAdminSecret });
 const gifts = indexed.streamGifts();
 const chain = new ChainGiftFeed(config.d, config.wsUrl).start();
-const server = createApp({ config, relayer, indexed, gifts, chain });
+const creators = new CreatorStore(config.d, config.dataDir);
+const server = createApp({ config, relayer, indexed, gifts, chain, creators });
 
 server.listen(config.port, async () => {
   const balance = await relayer.balance();

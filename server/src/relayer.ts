@@ -7,6 +7,7 @@ import {
   beamGiftsAbi,
   checkDropParams,
   checkMeta,
+  checkSplit,
   txUrl,
 } from "@beam/shared";
 import {
@@ -73,6 +74,12 @@ export const claimRequest = z.object({
   recipient: address,
   proof: bytes32Array,
   claimSig: z.string().regex(/^0x[0-9a-fA-F]{130}$/, "expected a 65-byte signature").transform((h) => h as Hex),
+});
+
+export const splitRequest = z.object({
+  split: z.object({ recipients: z.array(address).min(2).max(10), bps: z.array(z.number().int().min(1).max(10_000)).min(2).max(10) }),
+  meta: giftRequest.shape.meta,
+  auth: giftRequest.shape.auth,
 });
 
 export const reclaimRequest = z.object({
@@ -171,6 +178,30 @@ export class Relayer {
         abi: beamGiftsAbi,
         functionName: "giftCreator",
         args: [req.to, req.meta, req.auth],
+      }),
+    );
+    return out;
+  }
+
+  /** A gift split in the same transaction between the creator and the shares they set. */
+  async relaySplit(body: unknown): Promise<RelayResult> {
+    const parsed = splitRequest.safeParse(body);
+    if (!parsed.success) throw new RelayError(400, issues(parsed.error));
+    const { split, meta, auth } = parsed.data;
+    try {
+      checkMeta(meta);
+      checkSplit(split);
+    } catch (e) {
+      throw new RelayError(400, (e as Error).message);
+    }
+    this.checkAuth(auth);
+    const { result: _, ...out } = await this.submit(() =>
+      this.publicClient.simulateContract({
+        account: this.account,
+        address: this.o.d.beamGifts,
+        abi: beamGiftsAbi,
+        functionName: "giftWithSplit",
+        args: [split.recipients, split.bps, meta, auth],
       }),
     );
     return out;

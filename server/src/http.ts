@@ -7,6 +7,7 @@ import { isAddress } from "viem";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { Config } from "./config.js";
 import type { ChainGiftFeed } from "./chainfeed.js";
+import type { CreatorStore } from "./creators.js";
 import type { Gift, GiftStream, Indexed } from "./feed.js";
 import { RelayError, type Relayer } from "./relayer.js";
 
@@ -20,12 +21,12 @@ const MIME: Record<string, string> = {
   ".json": "application/json",
 };
 
-type Deps = { config: Config; relayer: Relayer; indexed: Indexed; gifts: GiftStream; chain: ChainGiftFeed };
+type Deps = { config: Config; relayer: Relayer; indexed: Indexed; gifts: GiftStream; chain: ChainGiftFeed; creators: CreatorStore };
 
 /** Gifts older than this when they reach the feed are history being re-indexed, not live. */
 const LIVE_WINDOW_MS = 60_000;
 
-export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
+export function createApp({ config, relayer, indexed, gifts, chain, creators }: Deps) {
   const { d } = config;
   const trustProxy = process.env.TRUST_PROXY === "1";
   const clientIp = (req: IncomingMessage) =>
@@ -115,6 +116,8 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
           ? "/overlay.html"
           : pathname === "/wallet"
             ? "/wallet.html"
+            : pathname === "/creator"
+              ? "/creator.html"
             : /^\/g\/0x[0-9a-fA-F]{40}\/?$/.test(pathname)
               ? "/gift.html"
               : /^\/c\/0x[0-9a-fA-F]{64}\/?$/.test(pathname)
@@ -165,6 +168,18 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
       if (req.method === "POST" && path === "/api/relay/gift") {
         if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many gifts from this address, try again in a minute" });
         return json(res, 200, await relayer.relayGift(await readBody(req)));
+      }
+      if (req.method === "POST" && path === "/api/relay/split") {
+        if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many gifts from this address, try again in a minute" });
+        return json(res, 200, await relayer.relaySplit(await readBody(req)));
+      }
+      const configRoute = /^\/api\/creators\/(0x[0-9a-fA-F]{40})\/config$/.exec(path);
+      if (configRoute && req.method === "GET") {
+        return json(res, 200, (await creators.get(configRoute[1]!)) ?? { config: null, signature: null });
+      }
+      if (configRoute && req.method === "PUT") {
+        if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many requests from this address, try again in a minute" });
+        return json(res, 200, await creators.put(configRoute[1]!, await readBody(req)));
       }
       if (req.method === "POST" && path === "/api/relay/drop") {
         if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many gifts from this address, try again in a minute" });

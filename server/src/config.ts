@@ -18,6 +18,8 @@ export type Config = {
   hasuraWsUrl: string;
   hasuraAdminSecret: string;
   webDir: string;
+  /** Where creators' signed settings are kept (a Docker volume in production). */
+  dataDir: string;
 };
 
 function required(name: string): string {
@@ -52,6 +54,7 @@ export function loadConfig(): Config {
     hasuraHttpUrl,
     hasuraWsUrl: optional("HASURA_WS_URL", hasuraHttpUrl.replace(/^http/, "ws")),
     hasuraAdminSecret: required("HASURA_ADMIN_SECRET"),
+    dataDir: optional("DATA_DIR", new URL("../data", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")),
     webDir: optional("WEB_DIR", new URL("../../web/dist", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")),
   };
 }

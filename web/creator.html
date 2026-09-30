@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0a14" />
+    <title>Creator setup · Beam</title>
+    <link rel="stylesheet" href="/src/app.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/">Beam</a>
+        <span class="net" id="net" hidden></span>
+      </header>
+
+      <h1>Set up Beam for your stream</h1>
+      <p class="sub">Your passkey wallet receives every gift directly. Nobody holds your money in between.</p>
+      <p class="error" id="page-error" hidden></p>
+
+      <section class="card" id="signin">
+        <h2>Your creator wallet</h2>
+        <p class="muted small">Gifts go straight to this wallet. Secured by your passkey; no app, no seed phrase.</p>
+        <div class="field">
+          <label for="signup-name">Your channel name</label>
+          <input id="signup-name" maxlength="32" autocomplete="nickname" placeholder="e.g. Tunde Live" />
+        </div>
+        <button id="signin-primary" type="button">Create my wallet with a passkey</button>
+        <button id="signin-other" class="ghost" type="button">I have a Beam passkey on another device</button>
+        <p class="error" id="signin-error" hidden></p>
+      </section>
+
+      <section id="dash" hidden>
+        <section class="card">
+          <h2>1. Add the overlay to OBS</h2>
+          <p class="muted small">Sources → <b>+</b> → <b>Browser</b>. Paste this URL, set width <b>1920</b> and height <b>1080</b>.</p>
+          <div class="addr">
+            <input id="overlay-url" readonly aria-label="Overlay URL" />
+            <button class="inline" id="overlay-copy" type="button">Copy</button>
+          </div>
+          <p class="small"><a id="overlay-preview" target="_blank" rel="noopener">Preview overlay ↗</a></p>
+        </section>
+
+        <section class="card">
+          <h2>2. Add <span class="mono">!gift</span> to your chat bot</h2>
+          <p class="muted small">Viewers type <span class="mono">!gift</span> and get your gift link. Paste one of these in your chat:</p>
+          <label for="nightbot">Nightbot</label>
+          <div class="addr">
+            <input id="nightbot" readonly />
+            <button class="inline" id="nightbot-copy" type="button">Copy</button>
+          </div>
+          <label for="streamelements">StreamElements</label>
+          <div class="addr">
+            <input id="streamelements" readonly />
+            <button class="inline" id="se-copy" type="button">Copy</button>
+          </div>
+          <label for="gift-url">Your gift link</label>
+          <div class="addr">
+            <input id="gift-url" readonly />
+            <button class="inline" id="gift-copy" type="button">Copy</button>
+          </div>
+        </section>
+
+        <form class="card" id="settings" novalidate>
+          <h2>3. Your settings</h2>
+          <label for="display">Name viewers see</label>
+          <input id="display" maxlength="32" />
+
+          <label for="goal">Goal in USD <span class="count">optional</span></label>
+          <input id="goal" inputmode="decimal" placeholder="100" />
+          <label for="goal-title">Goal title</label>
+          <input id="goal-title" maxlength="40" placeholder="Stream goal" />
+          <label style="font-weight: 400"><input type="checkbox" id="goal-reset" style="width: auto" /> Start counting the goal from now</label>
+
+          <h2 style="margin-top: 20px">Split every gift</h2>
+          <p class="muted small">
+            A co-streamer, mod, editor or charity gets their share in the same transaction as you. You keep the rest.
+          </p>
+          <div id="shares"></div>
+          <button class="ghost" id="add-share" type="button">+ Add a share</button>
+          <p class="small" id="keep"></p>
+
+          <button id="save" type="submit">Save settings</button>
+          <p class="error" id="save-error" hidden></p>
+          <p class="muted small" id="saved" hidden>Saved and signed by your wallet ✓</p>
+        </form>
+      </section>
+    </div>
+    <script type="module" src="/src/creator.ts"></script>
+  </body>
+</html>

@@ -11,3 +11,4 @@ dist/
 indexer/.envio/
 deploy/.env
 indexer/envio-env.d.ts
+server/data/

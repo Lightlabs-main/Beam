@@ -85,8 +85,11 @@ services:
       HASURA_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
       RPC_URL: ${RPC_URL:-}
       RPC_WS_URL: ${RPC_WS_URL:-}
+      DATA_DIR: /data
       PORT: 8787
       TRUST_PROXY: "1"
+    volumes:
+      - beam-data:/data
     # Loopback only: reachable through an SSH tunnel for checks, never from the internet.
     ports:
       - "127.0.0.1:8787:8787"
@@ -111,5 +114,6 @@ services:
 
 volumes:
   pg-data:
+  beam-data:
   caddy-data:
   caddy-config:
