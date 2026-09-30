@@ -23,10 +23,6 @@ contracts:
 chains:
   - id: 10143
     start_block: 66952339
-    rpc:
-      - url: "https://rpc-testnet.monadinfra.com"
-        ws: "wss://rpc-testnet.monadinfra.com"
-        for: realtime
     contracts:
       - name: BeamGifts
         address: "0x649Cdc9A801a8d7918f28FBB3b178568bcFBF0a7"
