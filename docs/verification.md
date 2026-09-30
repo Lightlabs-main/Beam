@@ -161,6 +161,17 @@ Sender balance $8.50 → $7.50 ($1 claimed, $0.50 returned), MON 0 throughout. F
 opened seconds after sending showed no sender name (indexer lag); the server now answers from the
 chain push.
 
+## Mera passkey gate (§3.2), real phone
+
+2026-09-30, beamstreams.xyz (rpId `beamstreams.xyz`), `@category-labs/mera` 0.2.0.
+
+| Step | Result |
+|---|---|
+| Create a passkey wallet on the user's phone (claim page) | `0x2091f4594c2b06b224fbca49267f2304938a0086` |
+| Receive: claim a $0.50 chatter gift into it, gaslessly | `0xa35bea196e68c12ebf28689df76292ed95a13ea88ce5cf6539146293d4cbcd3d`; wallet holds $0.50, 0 MON |
+| Send a gift from it | pending |
+| Recover on another device / after forgetting this one | pending |
+
 ## Not yet verified
 
 - Split gifts, claims, reclaims and bombs against the live deployment (covered by fork tests only).
