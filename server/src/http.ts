@@ -6,6 +6,7 @@ import { formatUsdc } from "@beam/shared";
 import { isAddress } from "viem";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { Config } from "./config.js";
+import type { ChainGiftFeed } from "./chainfeed.js";
 import type { Gift, GiftStream, Indexed } from "./feed.js";
 import { RelayError, type Relayer } from "./relayer.js";
 
@@ -19,12 +20,12 @@ const MIME: Record<string, string> = {
   ".json": "application/json",
 };
 
-type Deps = { config: Config; relayer: Relayer; indexed: Indexed; gifts: GiftStream };
+type Deps = { config: Config; relayer: Relayer; indexed: Indexed; gifts: GiftStream; chain: ChainGiftFeed };
 
 /** Gifts older than this when they reach the feed are history being re-indexed, not live. */
 const LIVE_WINDOW_MS = 60_000;
 
-export function createApp({ config, relayer, indexed, gifts }: Deps) {
+export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
   const { d } = config;
   const trustProxy = process.env.TRUST_PROXY === "1";
   const clientIp = (req: IncomingMessage) =>
@@ -55,6 +56,14 @@ export function createApp({ config, relayer, indexed, gifts }: Deps) {
     lastFeedError = e.message;
   });
   gifts.on("status", (s) => s === "connected" && (lastFeedError = ""));
+
+  let chainStatus = "connecting";
+  chain.on("status", (s) => (chainStatus = s));
+  let lastChainError = "";
+  chain.on("error", (e) => {
+    if (e.message !== lastChainError) console.error(`[chain] ${e.message}`);
+    lastChainError = e.message;
+  });
 
   const json = (res: ServerResponse, status: number, body: unknown) => {
     res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
@@ -112,6 +121,7 @@ export function createApp({ config, relayer, indexed, gifts }: Deps) {
           relayerBalanceWei: balance,
           relayerAboveFloor: balance >= config.relayerFloorWei,
           indexer: indexerStatus,
+          chainPush: chainStatus,
         });
       }
       if (req.method === "GET" && path === "/api/config") {
@@ -172,21 +182,36 @@ export function createApp({ config, relayer, indexed, gifts }: Deps) {
     });
   });
 
-  gifts.on("gift", (gift: Gift) => {
+  // Two sources carry the same gifts: the chain's log push (first, usually) and Envio (backup).
+  // Whichever delivers a gift first fires the alert; the other copy is dropped by id.
+  const delivered = new Map<string, number>();
+  setInterval(() => {
+    const cutoff = Date.now() - 10 * LIVE_WINDOW_MS;
+    for (const [id, at] of delivered) if (at < cutoff) delivered.delete(id);
+  }, LIVE_WINDOW_MS).unref();
+
+  const onGift = (source: "chain" | "indexer") => (gift: Gift) => {
     const receivedAt = Date.now();
-    const targets = byCreator.get(gift.channel.toLowerCase());
+    if (delivered.has(gift.id)) {
+      console.log(`[${source}] ${gift.txHash} +${receivedAt - delivered.get(gift.id)!}ms after first delivery (duplicate)`);
+      return;
+    }
     const lag = receivedAt - Number(gift.ts) * 1000;
     // A (re)syncing indexer streams old gifts too. Alerts are for gifts happening now; history
     // reaches overlays through the recent/total queries they run on connect.
     const backfill = lag > LIVE_WINDOW_MS;
+    const targets = byCreator.get(gift.channel.toLowerCase());
+    if (!backfill) delivered.set(gift.id, receivedAt);
     console.log(
-      `[feed] ${gift.kind} ${gift.txHash} ${formatUsdc(BigInt(gift.amount))} USDC -> ${gift.to ?? gift.recipientLabel ?? "drop"} on ${gift.channel} ` +
+      `[${source}] ${gift.kind} ${gift.txHash} ${formatUsdc(BigInt(gift.amount))} USDC -> ${gift.to ?? gift.recipientLabel ?? "drop"} on ${gift.channel} ` +
         `(block ts + ${lag}ms, ${backfill ? "backfill, not alerted" : `${targets?.size ?? 0} overlays`})`,
     );
     if (!targets || backfill) return;
     const msg = JSON.stringify({ type: "gift", gift });
     for (const ws of targets) if (ws.readyState === ws.OPEN) ws.send(msg);
-  });
+  };
+  chain.on("gift", onGift("chain"));
+  gifts.on("gift", onGift("indexer"));
 
   return server;
 }

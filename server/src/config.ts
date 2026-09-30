@@ -4,6 +4,8 @@ import { type Hex, parseEther } from "viem";
 export type Config = {
   d: Deployment;
   rpcUrl: string;
+  /** WebSocket endpoint for the live log push (eth_subscribe). */
+  wsUrl: string;
   port: number;
   relayerKey: Hex;
   /** Refuse to sponsor gas below this relayer balance (wei); the balance is an operational dependency. */
@@ -26,6 +28,13 @@ function required(name: string): string {
 
 const optional = (name: string, fallback: string) => process.env[name] || fallback;
 
+// Public Monad WebSocket endpoints (docs.monad.xyz). A log subscription is push-based and costs
+// nothing while no gifts happen; override with RPC_WS_URL.
+const DEFAULT_WS: Record<string, string> = {
+  testnet: "wss://rpc-testnet.monadinfra.com",
+  mainnet: "wss://rpc-mainnet.monadinfra.com",
+};
+
 export function loadConfig(): Config {
   const d = deployment(parseNetwork(process.env.BEAM_NETWORK));
   const relayerKey = required("RELAYER_PRIVATE_KEY");
@@ -34,6 +43,7 @@ export function loadConfig(): Config {
   return {
     d,
     rpcUrl: optional("RPC_URL", d.chain.rpcUrls.default.http[0]!),
+    wsUrl: optional("RPC_WS_URL", DEFAULT_WS[d.network]!),
     port: Number(optional("PORT", "8787")),
     relayerKey: relayerKey as Hex,
     relayerFloorWei: parseEther(optional("RELAYER_MIN_BALANCE_MON", "0.5")),

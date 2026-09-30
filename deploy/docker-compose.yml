@@ -84,6 +84,7 @@ services:
       HASURA_URL: http://hasura:8080/v1/graphql
       HASURA_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
       RPC_URL: ${RPC_URL:-}
+      RPC_WS_URL: ${RPC_WS_URL:-}
       PORT: 8787
       TRUST_PROXY: "1"
     # Loopback only: reachable through an SSH tunnel for checks, never from the internet.
