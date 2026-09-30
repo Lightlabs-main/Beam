@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Beam · Live gifts on stream</title>
+    <meta name="description" content="Live gifts for streamers that land on screen in under a second, paid straight to the creator on Monad." />
+    <link rel="stylesheet" href="/src/home.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="/">Beam</a>
+      <span class="net" id="net" hidden></span>
+    </header>
+
+    <main>
+      <section class="hero">
+        <h1>Live gifts that land on stream<br />in under a second.</h1>
+        <p class="lede">
+          A viewer scans the QR on your stream, sends a gift, and it explodes onto the video while the money
+          lands in your wallet on Monad. No platform cut, no payout wait.
+          <strong>The animation is the settlement.</strong>
+        </p>
+      </section>
+
+      <section class="steps" aria-label="How it works">
+        <div class="step">
+          <span class="n">1</span>
+          <h2>Scan</h2>
+          <p>Viewers scan the QR in your overlay. No app, no seed phrase, no gas token.</p>
+        </div>
+        <div class="step">
+          <span class="n">2</span>
+          <h2>Gift</h2>
+          <p>They pick an amount and confirm with a passkey. Beam pays the network fee.</p>
+        </div>
+        <div class="step">
+          <span class="n">3</span>
+          <h2>On stream</h2>
+          <p>The alert fires from the on-chain gift itself, and the USDC is already yours.</p>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="setup-title">
+        <h2 id="setup-title">Add Beam to OBS</h2>
+        <p class="muted">Paste the Monad wallet address gifts should go to. Your overlay link is built right here in your browser.</p>
+
+        <form id="setup" novalidate>
+          <label for="address">Your wallet address</label>
+          <input id="address" name="address" autocomplete="off" spellcheck="false" placeholder="0x…" inputmode="text" required />
+          <p class="error" id="address-error" hidden>That isn't a valid wallet address (0x followed by 40 hex characters).</p>
+
+          <div class="row">
+            <div>
+              <label for="goal">Goal in USD <span class="opt">optional</span></label>
+              <input id="goal" name="goal" inputmode="decimal" placeholder="100" />
+            </div>
+            <div>
+              <label for="title">Goal title <span class="opt">optional</span></label>
+              <input id="title" name="title" maxlength="40" placeholder="Stream goal" />
+            </div>
+          </div>
+          <p class="error" id="goal-error" hidden>Use a plain amount like 100 or 25.50.</p>
+
+          <button type="submit">Create my overlay link</button>
+        </form>
+
+        <div id="result" class="result" hidden>
+          <label for="url">Your overlay link</label>
+          <div class="copyrow">
+            <input id="url" readonly />
+            <button type="button" id="copy">Copy</button>
+          </div>
+          <p class="muted small" id="goal-note" hidden>The goal counts gifts from the moment you created this link.</p>
+          <ol class="howto">
+            <li>In OBS, click <b>+</b> under Sources and choose <b>Browser</b>.</li>
+            <li>Paste the link into <b>URL</b>, set <b>Width 1920</b> and <b>Height 1080</b>, and click OK.</li>
+            <li>Keep the source above your camera and game layers.</li>
+          </ol>
+          <a id="preview" class="secondary" target="_blank" rel="noopener">Preview overlay ↗</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p id="status" class="muted small"></p>
+      <p class="muted small"><a href="https://github.com/Lightlabs-main/Beam" rel="noopener">Source on GitHub</a></p>
+    </footer>
+
+    <script type="module" src="/src/home.ts"></script>
+  </body>
+</html>

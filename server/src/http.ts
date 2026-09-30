@@ -89,10 +89,21 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
       req.on("error", reject);
     });
 
-  async function serveStatic(pathname: string, res: ServerResponse) {
+  const notFound = (req: IncomingMessage, res: ServerResponse) => {
+    if (!String(req.headers.accept ?? "").includes("text/html")) return json(res, 404, { error: "not found" });
+    res.writeHead(404, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache" });
+    res.end(
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+        `<title>Beam · Page not found</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0a14;color:#f4f3fa;` +
+        `font:16px/1.5 system-ui,sans-serif;text-align:center;padding:16px}a{color:#22d3ee}</style></head>` +
+        `<body><main><h1>Nothing here</h1><p>This page doesn't exist on Beam.</p><p><a href="/">Go to beamstreams.xyz</a></p></main></body></html>`,
+    );
+  };
+
+  async function serveStatic(pathname: string, req: IncomingMessage, res: ServerResponse) {
     const route = pathname === "/overlay" ? "/overlay.html" : pathname === "/" ? "/index.html" : pathname;
     const file = normalize(join(config.webDir, route));
-    if (!file.startsWith(normalize(config.webDir))) return json(res, 404, { error: "not found" });
+    if (!file.startsWith(normalize(config.webDir))) return notFound(req, res);
     try {
       const s = await stat(file);
       if (!s.isFile()) throw new Error("not a file");
@@ -102,7 +113,7 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
       });
       createReadStream(file).pipe(res);
     } catch {
-      json(res, 404, { error: "not found" });
+      notFound(req, res);
     }
   }
 
@@ -148,7 +159,7 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
         if (!since || !/^\d+$/.test(since)) return json(res, 400, { error: "since must be a unix timestamp" });
         return json(res, 200, { total: await indexed.totalSince(creator, BigInt(since)) });
       }
-      if (req.method === "GET" || req.method === "HEAD") return serveStatic(path, res);
+      if (req.method === "GET" || req.method === "HEAD") return serveStatic(path, req, res);
       json(res, 405, { error: "method not allowed" });
     } catch (e) {
       if (e instanceof RelayError) return json(res, e.status, { error: e.message });

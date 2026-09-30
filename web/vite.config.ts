@@ -6,7 +6,10 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      input: { overlay: resolve(import.meta.dirname, "overlay.html") },
+      input: {
+        index: resolve(import.meta.dirname, "index.html"),
+        overlay: resolve(import.meta.dirname, "overlay.html"),
+      },
     },
   },
   server: {
