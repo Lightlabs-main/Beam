@@ -57,8 +57,6 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
   });
   gifts.on("status", (s) => s === "connected" && (lastFeedError = ""));
 
-  let chainStatus = "connecting";
-  chain.on("status", (s) => (chainStatus = s));
   let lastChainError = "";
   chain.on("error", (e) => {
     if (e.message !== lastChainError) console.error(`[chain] ${e.message}`);
@@ -121,7 +119,7 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
           relayerBalanceWei: balance,
           relayerAboveFloor: balance >= config.relayerFloorWei,
           indexer: indexerStatus,
-          chainPush: chainStatus,
+          chainPush: chain.status,
         });
       }
       if (req.method === "GET" && path === "/api/config") {

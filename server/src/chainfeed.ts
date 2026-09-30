@@ -90,6 +90,8 @@ export function giftsFromLogs(d: Deployment, logs: GiftLog[]): Gift[] {
  */
 export class ChainGiftFeed extends EventEmitter<{ gift: [Gift]; status: [string]; error: [Error] }> {
   private unwatch: () => void = () => {};
+  /** subscribed → connected (first logs seen) ⇄ reconnecting. */
+  status = "starting";
 
   constructor(
     private readonly d: Deployment,
@@ -106,16 +108,21 @@ export class ChainGiftFeed extends EventEmitter<{ gift: [Gift]; status: [string]
     this.unwatch = client.watchEvent({
       address: [this.d.beamGifts, this.d.beamClaims],
       onLogs: (logs) => {
-        this.emit("status", "connected");
+        this.setStatus("connected");
         for (const gift of giftsFromLogs(this.d, logs as GiftLog[])) this.emit("gift", gift);
       },
       onError: (e) => {
-        this.emit("status", "reconnecting");
+        this.setStatus("reconnecting");
         this.emit("error", e);
       },
     });
-    this.emit("status", "subscribed");
+    this.setStatus("subscribed");
     return this;
+  }
+
+  private setStatus(s: string) {
+    this.status = s;
+    this.emit("status", s);
   }
 
   close() {
