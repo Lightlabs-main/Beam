@@ -10,11 +10,19 @@
     "abi": "pnpm --filter @beam/shared abi",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck && tsc -p script",
+    "verify": "tsx script/verify.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
     ]
+  },
+  "devDependencies": {
+    "@beam/shared": "workspace:*",
+    "tsx": "^4.20.0",
+    "viem": "^2.38.0",
+    "typescript": "^5.9.3",
+    "@types/node": "^24.0.0"
   }
 }

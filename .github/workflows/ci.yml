@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App, tests and live verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      # Tests run against live Monad testnet contracts; none of them broadcast.
+      - run: pnpm --filter @beam/shared test
+      - run: pnpm --filter @beam/server test
+      - run: pnpm --filter @beam/web build
+      # Every dependency, asserted against live Monad and https://beamstreams.xyz.
+      - run: pnpm verify
+
+  indexer:
+    name: Indexer codegen and handler types
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: indexer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: config.yaml matches contracts/deployments and the compiled ABI
+        run: node scripts/write-config.mjs && git diff --exit-code config.yaml
+      - run: pnpm install --frozen-lockfile --ignore-workspace
+      - run: pnpm envio codegen
+      - run: pnpm exec tsc --noEmit
+
+  contracts:
+    name: Contracts on mainnet and testnet forks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge build
+      - name: Fork tests against Circle USDC on Monad mainnet
+        run: forge test
+      - name: Fork tests against Circle USDC on Monad testnet
+        run: forge test
+        env:
+          BEAM_NETWORK: testnet
