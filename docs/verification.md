@@ -105,6 +105,26 @@ The free token is "fair-use" rate limited; Starter ($70/month) allows 100 reques
 (`ENVIO_REALTIME_RPC`) so HyperSync is only used for historical sync. The earlier ~1 s results
 were measured inside the unthrottled part of the cycle and are not representative until this is fixed.
 
+### Fix: alerts from the chain's own log push (Envio as backup)
+
+Decision (2026-09-30): rather than paying for HyperSync or an RPC plan, the server subscribes to
+BeamGifts and BeamClaims events over Monad's public WebSocket (`eth_subscribe` logs: push, free
+while idle) and alerts from whichever source delivers a gift first, de-duplicated by the id Envio
+assigns (`chainId-txHash-logIndex`). Envio still serves history, goal totals and the recent list,
+and is the backup alert source. Five real $0.50 gifts, timed on the VPS clock by
+`server/scripts/latency-probe.ts`:
+
+| Tx | Relay → receipt | Relay → overlay WebSocket |
+|---|---|---|
+| `0x41e30264…c161` | 394 ms | 385 ms |
+| `0xea97cd9b…1b1e` | 686 ms | 548 ms |
+| `0xd66972d3…45fd` | 369 ms | 264 ms |
+| `0xf17dd4a8…0f4a` | 666 ms | 576 ms |
+| `0xa6a6ed90…c931` | 680 ms | 423 ms |
+
+The overlay receives each gift before the relayer's own receipt returns. The chain push won every
+time; Envio's copies arrived 0.3–36 s later and were dropped as duplicates (logged).
+
 ## Gift-a-chatter on stream (testnet)
 
 BeamClaims redeployed with a sender-signed `channel` on every drop:

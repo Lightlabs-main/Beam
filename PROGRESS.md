@@ -21,8 +21,9 @@ Last updated 2026-09-30.
   indexed events.
 - **Deployment** (`deploy/`): Docker Compose stack (Postgres, Hasura, Envio, server, Caddy HTTPS),
   running on AWS Lightsail (London, static IP 16.61.50.207). All services up.
-- **§3.4 passed**: a real gift reached the overlay through Envio over WebSocket; 0.8–1.8 s from
-  relay request to overlay (details in `docs/verification.md`).
+- **§3.4 passed**: real gifts reach the overlay over WebSocket in 0.26–0.58 s from the relay request.
+  Alerts come from the chain's own log push; Envio (rate-limited on the free token) is the backup
+  source and serves history, totals and the recent list (details in `docs/verification.md`).
 - **Gift-a-chatter on stream**: drops carry a sender-signed channel; a real chatter gift showed on the
   creator's overlay and was claimed by a fresh account holding no MON (BeamClaims redeployed).
 
@@ -36,15 +37,16 @@ Last updated 2026-09-30.
 
 ## Blocked / waiting on
 
-- **Realtime indexing source** (decision needed): the free Envio token is rate-limited, so alerts
-  stall for up to ~50 s every minute. Fix with a dedicated RPC key (e.g. Alchemy/QuickNode free tier)
-  for realtime, or Envio Starter ($70/month). See verification.
 - **Domain** with an A record to 16.61.50.207 (HTTPS is required for passkeys). Mera binds wallets
   to the domain, so it must be the one Beam keeps; the server behind it can change freely.
 - **Ramp** production key application (§3.3): not started by the user yet as far as recorded here.
 - **Real phone** for the Mera passkey test.
 
 ## Known gaps
+
+- **Spec deviation (agreed 2026-09-30)**: §6.1 says alerts are driven by the Envio stream. They are
+  driven by the chain log push first, Envio second, because the free HyperSync token stalls realtime
+  indexing ~50 s each minute. Revisit if Envio Starter is bought.
 
 - Relayer rate limiting is in-memory per process; fine for one server.
 - Free space on the development machine's C: drive keeps dropping; watch it.
