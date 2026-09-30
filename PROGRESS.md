@@ -20,7 +20,9 @@ Last updated 2026-09-30.
 - **Overlay** (`web/overlay.html`): alert + confetti, goal bar, recent gifts, QR. Driven only by
   indexed events.
 - **Deployment** (`deploy/`): Docker Compose stack (Postgres, Hasura, Envio, server, Caddy HTTPS),
-  VPS bootstrap and deploy scripts.
+  VPS bootstrap and deploy scripts. Running on AWS Lightsail (London, static IP 16.61.50.207):
+  Postgres, Hasura and the server are up; the indexer image builds (codegen + handler type-check)
+  but waits for an Envio API token.
 
 ## Next
 
@@ -36,8 +38,9 @@ Last updated 2026-09-30.
 
 ## Blocked / waiting on
 
-- **VPS**: IP and a domain with an A record pointing at it (HTTPS is required for passkeys).
-- **Envio API token** for HyperSync: create at https://envio.dev/app/api-tokens.
+- **Envio API token**: the indexer refuses to start without one (HyperSync requires it).
+- **Domain** with an A record to 16.61.50.207 (HTTPS is required for passkeys). Mera binds wallets
+  to the domain, so it must be the one Beam keeps; the server behind it can change freely.
 - **Ramp** production key application (§3.3): not started by the user yet as far as recorded here.
 - **Real phone** for the Mera passkey test.
 
