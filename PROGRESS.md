@@ -33,13 +33,17 @@ Last updated 2026-09-30.
   `/wallet` (balances, recovery phrase, take back unclaimed gifts, forget-device recovery test).
 - **Gift-a-chatter via the public API**: drop, claim into a fresh wallet (0 MON), double-claim refused,
   take-back, all live (see verification).
+- **Beam Bomb** (live): one 163-character link; first chatters each claim a share; races, double
+  claims, latecomers and dust all verified on testnet.
+- **Passkey gate (§3.2)**: create + receive verified on a real phone; send + recover pending.
 
 ## Next
 
 1. Mera passkey gate (§3.2) on a real phone: create, receive, send, recover. Pages are live; needs the
    user's phone. Record it.
-2. Beam Bomb and splits in the product (UI + live runs); mainnet deployment and relayer wallet.
-3. `script/verify.ts` wired as `pnpm verify` and in CI.
+2. Mainnet deployment and a separate mainnet relayer wallet.
+3. Splits need a creator dashboard (the creator defines co-stream/mod/charity shares).
+4. `script/verify.ts` wired as `pnpm verify` and in CI.
 
 ## Blocked / waiting on
 
@@ -47,6 +51,9 @@ Last updated 2026-09-30.
 - **Real phone** for the Mera passkey test.
 
 ## Known gaps
+
+- Bomb fairness: one share per wallet, but passkey wallets are free to make, so a determined person
+  can take several shares. Fine for a crowd moment; not a strict one-per-human guarantee.
 
 - **Spec deviation (agreed 2026-09-30)**: §6.1 says alerts are driven by the Envio stream. They are
   driven by the chain log push first, Envio second, because the free HyperSync token stalls realtime

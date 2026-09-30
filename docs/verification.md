@@ -161,6 +161,24 @@ Sender balance $8.50 → $7.50 ($1 claimed, $0.50 returned), MON 0 throughout. F
 opened seconds after sending showed no sender name (indexer lag); the server now answers from the
 chain push.
 
+## Beam Bomb through the public API (testnet)
+
+`server/scripts/bomb-flow.ts` against https://beamstreams.xyz, 2026-09-30: a $1 pool across 3 slots,
+one link derived from a single seed (163 characters).
+
+| Case | Result |
+|---|---|
+| Bomb created | `0x1f0ad20a5576cf40488e6bc1a33e0669670ec6b36dfec0f9f905230f70493ece` |
+| A and B claim slot 0 at the same instant | A: slot 0 `0xdcc22ca7…b5d6`; B lost the race, retried, slot 1 `0x03be3759…958e` |
+| A claims again | refused: `AlreadyClaimed` |
+| C | slot 2 `0x37a0d36a…025e` |
+| D arrives after all slots are gone | "all claimed", no transaction sent |
+| Payouts | A, B, C: 333,333 units each, 0 MON; D: 0 |
+| Dust | drop closed with 0 remaining; sender paid 999,999 units (1 unit of dust returned) |
+
+Known limit: "one share per wallet" stops one wallet taking two shares, but a person can make several
+passkey wallets. Bomb links should be dropped in chat for a crowd, not relied on for strict fairness.
+
 ## Mera passkey gate (§3.2), real phone
 
 2026-09-30, beamstreams.xyz (rpId `beamstreams.xyz`), `@category-labs/mera` 0.2.0.
