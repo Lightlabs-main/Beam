@@ -7,7 +7,7 @@ import { Relayer } from "./relayer.js";
 const config = loadConfig();
 const relayer = new Relayer(config);
 const indexed = new Indexed({ httpUrl: config.hasuraHttpUrl, wsUrl: config.hasuraWsUrl, adminSecret: config.hasuraAdminSecret });
-const gifts = await indexed.streamGifts();
+const gifts = indexed.streamGifts();
 const server = createApp({ config, relayer, indexed, gifts });
 
 server.listen(config.port, async () => {

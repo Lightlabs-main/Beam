@@ -74,11 +74,37 @@ export class Indexed {
 
   /**
    * Emits every gift indexed after start-up, in chain order, from a Hasura streaming
-   * subscription. The cursor is `seq`, so a reconnect resumes where it left off.
+   * subscription. The cursor is `seq`, so a reconnect resumes where it left off. Returns at
+   * once; until the indexer's tables exist it keeps retrying and reports status "waiting".
    */
-  async streamGifts(): Promise<GiftStream> {
+  streamGifts(): GiftStream {
     const stream = new GiftStream();
-    let cursor = await this.latestSeq();
+    let closed = false;
+    stream.close = () => {
+      closed = true;
+    };
+
+    const start = async () => {
+      let cursor: string;
+      for (;;) {
+        if (closed) return;
+        try {
+          cursor = await this.latestSeq();
+          break;
+        } catch (e) {
+          stream.emit("status", "waiting");
+          stream.emit("error", e as Error);
+          await new Promise((r) => setTimeout(r, 3000));
+        }
+      }
+      this.subscribeFrom(stream, cursor, () => closed);
+    };
+    void start();
+    return stream;
+  }
+
+  private subscribeFrom(stream: GiftStream, initialCursor: string, isClosed: () => boolean) {
+    let cursor = initialCursor;
     const client = createClient({
       url: this.o.wsUrl,
       webSocketImpl: WebSocket,
@@ -112,22 +138,22 @@ export class Indexed {
           },
           error: (e) => {
             stream.emit("error", e instanceof Error ? e : new Error(JSON.stringify(e)));
-            setTimeout(() => (stream.unsubscribe = subscribe()), 1000);
+            setTimeout(() => {
+              if (!isClosed()) unsubscribe = subscribe();
+            }, 3000);
           },
           complete: () => {},
         },
       );
 
-    stream.unsubscribe = subscribe();
+    let unsubscribe = subscribe();
     stream.close = () => {
-      stream.unsubscribe();
+      unsubscribe();
       void client.dispose();
     };
-    return stream;
   }
 }
 
 export class GiftStream extends EventEmitter<{ gift: [Gift]; status: [string]; error: [Error] }> {
-  unsubscribe: () => void = () => {};
   close: () => void = () => {};
 }

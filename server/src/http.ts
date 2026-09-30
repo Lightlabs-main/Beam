@@ -41,7 +41,12 @@ export function createApp({ config, relayer, indexed, gifts }: Deps) {
 
   let indexerStatus = "connecting";
   gifts.on("status", (s) => (indexerStatus = s));
-  gifts.on("error", (e) => console.error(`[feed] ${e.message}`));
+  let lastFeedError = "";
+  gifts.on("error", (e) => {
+    if (e.message !== lastFeedError) console.error(`[feed] ${e.message}`);
+    lastFeedError = e.message;
+  });
+  gifts.on("status", (s) => s === "connected" && (lastFeedError = ""));
 
   const json = (res: ServerResponse, status: number, body: unknown) => {
     res.writeHead(status, { "content-type": "application/json", "cache-control": "no-store" });
