@@ -21,6 +21,9 @@ const MIME: Record<string, string> = {
 
 type Deps = { config: Config; relayer: Relayer; indexed: Indexed; gifts: GiftStream };
 
+/** Gifts older than this when they reach the feed are history being re-indexed, not live. */
+const LIVE_WINDOW_MS = 60_000;
+
 export function createApp({ config, relayer, indexed, gifts }: Deps) {
   const { d } = config;
   const trustProxy = process.env.TRUST_PROXY === "1";
@@ -168,8 +171,14 @@ export function createApp({ config, relayer, indexed, gifts }: Deps) {
     const receivedAt = Date.now();
     const targets = gift.to ? byCreator.get(gift.to.toLowerCase()) : undefined;
     const lag = receivedAt - Number(gift.ts) * 1000;
-    console.log(`[feed] ${gift.kind} ${gift.txHash} ${formatUsdc(BigInt(gift.amount))} USDC -> ${gift.to ?? gift.recipientLabel ?? "drop"} (block ts + ${lag}ms, ${targets?.size ?? 0} overlays)`);
-    if (!targets) return;
+    // A (re)syncing indexer streams old gifts too. Alerts are for gifts happening now; history
+    // reaches overlays through the recent/total queries they run on connect.
+    const backfill = lag > LIVE_WINDOW_MS;
+    console.log(
+      `[feed] ${gift.kind} ${gift.txHash} ${formatUsdc(BigInt(gift.amount))} USDC -> ${gift.to ?? gift.recipientLabel ?? "drop"} ` +
+        `(block ts + ${lag}ms, ${backfill ? "backfill, not alerted" : `${targets?.size ?? 0} overlays`})`,
+    );
+    if (!targets || backfill) return;
     const msg = JSON.stringify({ type: "gift", gift });
     for (const ws of targets) if (ws.readyState === ws.OPEN) ws.send(msg);
   });
