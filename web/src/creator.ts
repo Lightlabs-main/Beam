@@ -1,12 +1,22 @@
 // Creator dashboard (/creator): passkey wallet → OBS link, chat command, signed settings.
-import { BPS, type CreatorConfig, MAX_SHARES, type SplitShare, checkCreatorConfig, parseUsdc, signCreatorConfig } from "@beam/shared";
+import {
+  BPS,
+  type CreatorConfig,
+  MAX_SHARES,
+  type SplitShare,
+  checkCreatorConfig,
+  parseUsdc,
+  signCreatorConfig,
+  signGift,
+  usdLabel,
+} from "@beam/shared";
 import { type Address, getAddress, isAddress } from "viem";
-import { $, copyText, loadConfig, signInCard } from "./pagekit.js";
+import { $, balances, copyText, loadConfig, randomSalt, signInCard } from "./pagekit.js";
 
 type Stored = { config: CreatorConfig | null };
 
 async function main() {
-  const { d } = await loadConfig();
+  const { cfg, d } = await loadConfig();
   const wallet = await signInCard($<HTMLInputElement>("signup-name"));
   addEventListener("pagehide", () => wallet.end());
   const me = getAddress(wallet.account.address);
@@ -25,8 +35,53 @@ async function main() {
   $("nightbot-copy").onclick = () => copyText($<HTMLInputElement>("nightbot").value, $("nightbot-copy"));
   $("se-copy").onclick = () => copyText($<HTMLInputElement>("streamelements").value, $("se-copy"));
 
+  // ---- test gift: a real, minimum-size gift to yourself; the overlay alert comes from its event.
+  const testUnits = parseUsdc(cfg.minGiftUsdc);
+  $("test-amount").textContent = usdLabel(testUnits);
+  const showBalance = async () => {
+    const bal = (await balances(me)).usdc;
+    $("test-balance").textContent = usdLabel(bal);
+    return bal;
+  };
+  await showBalance();
+  $("test-gift").onclick = async () => {
+    const button = $<HTMLButtonElement>("test-gift");
+    const result = $("test-result");
+    result.hidden = false;
+    if ((await showBalance()) < testUnits) {
+      result.textContent = `You need at least ${usdLabel(testUnits)} in your wallet. Ask a friend to gift you, or fund it (see the gift page).`;
+      return;
+    }
+    button.disabled = true;
+    button.textContent = "Sending…";
+    try {
+      const meta = { displayName: $<HTMLInputElement>("display").value.trim() || "Test", message: "Test gift: your Beam alert works!", actionCode: 1 };
+      const auth = await signGift(d, wallet.account, {
+        to: me,
+        meta,
+        value: testUnits,
+        validBefore: BigInt(Math.floor(Date.now() / 1000) + 600),
+        salt: randomSalt(),
+      });
+      const r = await fetch("/api/relay/gift", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ to: me, meta, auth }, (_, v) => (typeof v === "bigint" ? v.toString() : v)),
+      });
+      const body = (await r.json()) as { hash?: string; error?: string };
+      if (!r.ok || !body.hash) throw new Error(body.error ?? `failed (${r.status})`);
+      result.textContent = "Sent. Your overlay should be showing the alert now.";
+      await showBalance();
+    } catch (e) {
+      result.textContent = e instanceof Error ? e.message : String(e);
+    } finally {
+      button.disabled = false;
+      button.textContent = "Send a test gift";
+    }
+  };
+
   // ---- settings
-  const stored = (await (await fetch(`/api/creators/${me}/config`)).json()) as Stored;
+  const stored =(await (await fetch(`/api/creators/${me}/config`)).json()) as Stored;
   const current = stored.config;
   $<HTMLInputElement>("display").value = current?.displayName ?? $<HTMLInputElement>("signup-name").value.trim();
   $<HTMLInputElement>("goal").value = current?.goal?.usdc ?? "";

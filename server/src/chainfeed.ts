@@ -86,12 +86,32 @@ export function giftsFromLogs(d: Deployment, logs: GiftLog[]): Gift[] {
   return out.sort((x, y) => (BigInt(x.seq) < BigInt(y.seq) ? -1 : 1));
 }
 
+/** A chatter (or bomb share) being claimed; routed to the stream its drop belongs to. */
+export type ClaimEvent = { id: string; dropId: string; slot: number; recipient: string; amount: string; ts: string; txHash: string };
+
+export function claimsFromLogs(d: Deployment, logs: GiftLog[]): ClaimEvent[] {
+  return parseEventLogs({ abi: beamClaimsAbi, logs: logs.filter((l) => l.address.toLowerCase() === d.beamClaims.toLowerCase()) })
+    .filter((l) => l.eventName === "Claimed")
+    .map((l) => {
+      const a = (l as unknown as { args: { dropId: string; slot: number; recipient: string; amount: bigint; ts: bigint } }).args;
+      return {
+        id: `${d.chain.id}-${l.transactionHash.toLowerCase()}-${l.logIndex}`,
+        dropId: a.dropId.toLowerCase(),
+        slot: Number(a.slot),
+        recipient: a.recipient.toLowerCase(),
+        amount: a.amount.toString(),
+        ts: a.ts.toString(),
+        txHash: l.transactionHash.toLowerCase(),
+      };
+    });
+}
+
 /**
  * Pushes Beam gifts the moment the chain emits them, from an `eth_subscribe` log subscription on
  * a Monad WebSocket endpoint: push, not polling, and free when idle. Envio's stream stays as the
  * backup source; the server de-duplicates by gift id.
  */
-export class ChainGiftFeed extends EventEmitter<{ gift: [Gift]; status: [string]; error: [Error] }> {
+export class ChainGiftFeed extends EventEmitter<{ gift: [Gift]; claim: [ClaimEvent]; status: [string]; error: [Error] }> {
   private unwatch: () => void = () => {};
   /** subscribed → connected (first logs seen) ⇄ reconnecting. */
   status = "starting";
@@ -115,6 +135,7 @@ export class ChainGiftFeed extends EventEmitter<{ gift: [Gift]; status: [string]
       const logs = pending.get(tx) ?? [];
       pending.delete(tx);
       for (const gift of giftsFromLogs(this.d, logs)) this.emit("gift", gift);
+      for (const claim of claimsFromLogs(this.d, logs)) this.emit("claim", claim);
     };
     this.unwatch = client.watchEvent({
       address: [this.d.beamGifts, this.d.beamClaims],

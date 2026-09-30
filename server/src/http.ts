@@ -6,7 +6,7 @@ import { formatUsdc } from "@beam/shared";
 import { isAddress } from "viem";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { Config } from "./config.js";
-import type { ChainGiftFeed } from "./chainfeed.js";
+import type { ChainGiftFeed, ClaimEvent } from "./chainfeed.js";
 import type { CreatorStore } from "./creators.js";
 import type { Gift, GiftStream, Indexed } from "./feed.js";
 import { RelayError, type Relayer } from "./relayer.js";
@@ -289,6 +289,22 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
     for (const ws of targets) if (ws.readyState === ws.OPEN) ws.send(msg);
   };
   chain.on("gift", onGift("chain"));
+
+  // A claim tells the stream that a walletless chatter really got paid. Claimed events don't carry
+  // the channel, so it comes from the drop's creating gift (seen live, else from the indexer).
+  chain.on("claim", async (claim: ClaimEvent) => {
+    if (Date.now() - Number(claim.ts) * 1000 > LIVE_WINDOW_MS) return;
+    const drop = recentDrops.get(claim.dropId) ?? (await indexed.giftByDrop(claim.dropId).catch(() => null));
+    if (!drop) return console.log(`[chain] claim ${claim.txHash} for unknown drop ${claim.dropId}`);
+    const targets = byCreator.get(drop.channel.toLowerCase());
+    console.log(`[chain] claim ${claim.txHash} ${formatUsdc(BigInt(claim.amount))} USDC of ${drop.kind} on ${drop.channel} (${targets?.size ?? 0} overlays)`);
+    if (!targets) return;
+    const msg = JSON.stringify({
+      type: "claim",
+      claim: { ...claim, kind: drop.kind, from: drop.displayName, recipientLabel: drop.recipientLabel },
+    });
+    for (const ws of targets) if (ws.readyState === ws.OPEN) ws.send(msg);
+  });
   gifts.on("gift", onGift("indexer"));
 
   return server;

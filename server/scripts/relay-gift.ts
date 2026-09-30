@@ -18,7 +18,8 @@ const env = Object.fromEntries(
 
 const base = process.env.BEAM_URL ?? "http://localhost:8787";
 const d = deployment(parseNetwork(process.env.BEAM_NETWORK ?? "testnet"));
-const viewer = privateKeyToAccount(env.VIEWER_PRIVATE_KEY as Hex);
+// SIGNER picks which test wallet signs (default VIEWER): e.g. SIGNER=CREATOR.
+const viewer = privateKeyToAccount(env[`${process.env.SIGNER ?? "VIEWER"}_PRIVATE_KEY`] as Hex);
 const to = (process.env.TO ?? env.CREATOR_ADDRESS) as Address;
 const meta = {
   displayName: process.env.NAME ?? "JUDGE",

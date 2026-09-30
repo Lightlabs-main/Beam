@@ -20,7 +20,7 @@ type Gift = {
 
 const params = new URLSearchParams(location.search);
 const creator = params.get("creator") ?? "";
-const show = new Set((params.get("show") ?? "alert,qr,goal,recent").split(",").map((s) => s.trim()));
+const show = new Set((params.get("show") ?? "alert,qr,goal,recent,claims").split(",").map((s) => s.trim()));
 const alertMs = Number(params.get("duration") ?? 6000);
 const RECENT_ROWS = 5;
 
@@ -93,6 +93,32 @@ function enqueueAlert(gift: Gift) {
   if (!show.has("alert")) return;
   queue.push(gift);
   if (!playing) void playNext();
+}
+
+// ---------------------------------------------------------------- claims
+
+type Claim = { recipient: string; amount: string; kind: "Chatter" | "Bomb"; from: string; recipientLabel: string | null };
+
+/** A banner when a chatter claims: proof on stream that someone with no wallet got paid. */
+function showClaim(c: Claim) {
+  if (!show.has("claims")) return;
+  const li = document.createElement("li");
+  const who = c.kind === "Chatter" && c.recipientLabel ? c.recipientLabel : `${c.recipient.slice(0, 6)}…${c.recipient.slice(-4)}`;
+  const amt = document.createElement("span");
+  amt.className = "amt";
+  amt.textContent = dollars(BigInt(c.amount));
+  li.append(
+    document.createTextNode(c.kind === "Bomb" ? `💣 ${who} grabbed ` : `🎁 ${who} claimed `),
+    amt,
+    document.createTextNode(c.kind === "Bomb" ? ` from ${c.from || "the"} Beam Bomb` : ` from ${c.from || "a viewer"}`),
+  );
+  const list = $("toasts");
+  list.prepend(li);
+  while (list.children.length > 4) list.lastElementChild?.remove();
+  setTimeout(() => {
+    li.classList.add("leaving");
+    setTimeout(() => li.remove(), 380);
+  }, 8000);
 }
 
 // ---------------------------------------------------------------- recent + goal
@@ -182,7 +208,8 @@ function connect(attempt = 0) {
     sync().catch((e) => console.error(e));
   };
   ws.onmessage = (ev) => {
-    const msg = JSON.parse(String(ev.data)) as { type: string; gift?: Gift };
+    const msg = JSON.parse(String(ev.data)) as { type: string; gift?: Gift; claim?: Claim };
+    if (msg.type === "claim" && msg.claim) return showClaim(msg.claim);
     if (msg.type !== "gift" || !msg.gift) return;
     const gift = msg.gift;
     enqueueAlert(gift);

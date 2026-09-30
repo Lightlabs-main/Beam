@@ -4,7 +4,7 @@ import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
 import { deployment } from "@beam/shared";
 import { type Hex, createPublicClient, http } from "viem";
-import { giftsFromLogs } from "../src/chainfeed.js";
+import { claimsFromLogs, giftsFromLogs } from "../src/chainfeed.js";
 
 const d = deployment("testnet");
 const client = createPublicClient({ chain: d.chain, transport: http() });
@@ -55,5 +55,15 @@ describe("split gifts from the chain push", () => {
     assert.equal(gifts[0]!.kind, "Split");
     assert.equal(gifts[0]!.amount, "1000000");
     assert.equal(gifts[0]!.message, "for the whole crew");
+  });
+});
+
+describe("claims from the chain push", () => {
+  it("reads a live chatter claim", async () => {
+    const claims = claimsFromLogs(d, await logsOf("0x24c0e010d25018ba0a83cfaeed8bb8338c2a1c0cf9f2e6fbaf78472aea8e1662"));
+    assert.equal(claims.length, 1);
+    assert.equal(claims[0]!.dropId, "0x81b96ca249a0414ba6f55b9b1966cdd9aa92afb0d4c16b84b6d5bc19a90ee2f0");
+    assert.equal(claims[0]!.amount, "1000000");
+    assert.equal(claims[0]!.recipient, "0x97b40679aeaf6c5eb2557e6ec34d253ebd835a25");
   });
 });
