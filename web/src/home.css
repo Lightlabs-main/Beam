@@ -246,6 +246,9 @@ footer p {
   .hero {
     padding-top: 36px;
   }
+  h1 br {
+    display: none;
+  }
   .card {
     padding: 18px;
   }
