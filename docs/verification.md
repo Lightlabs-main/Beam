@@ -27,7 +27,7 @@ cd contracts && forge test                        # mainnet fork (default)
 cd contracts && BEAM_NETWORK=testnet forge test   # testnet fork
 ```
 
-Result on 2026-09-30 (commit `1892b9f`): **47 passed, 0 failed** on both networks
+Result on 2026-09-30 (commit `b02e2a0`): **47 passed, 0 failed** on both networks
 (20 BeamGifts, 27 BeamClaims).
 
 ## Testnet deployment
