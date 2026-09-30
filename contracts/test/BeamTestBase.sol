@@ -5,10 +5,13 @@ import {Test} from "forge-std/Test.sol";
 import {IUSDC} from "../src/interfaces/IUSDC.sol";
 import {Authorization, GiftMeta} from "../src/lib/BeamTypes.sol";
 
-/// @notice Tests run against a fork of live Monad testnet and Circle's real USDC deployment
-/// (address and EIP-3009 support recorded in docs/verification.md). Balances are seeded with
-/// forge's `deal` cheatcode on the real token; no token is re-implemented.
+/// @notice Tests run against a fork of live Monad and Circle's real USDC deployment (addresses
+/// from developers.circle.com/stablecoins/usdc-contract-addresses; EIP-3009 support recorded in
+/// docs/verification.md). BEAM_NETWORK=mainnet (default) or testnet picks the chain. Balances
+/// are seeded with forge's `deal` cheatcode on the real token; no token is re-implemented.
 abstract contract BeamTestBase is Test {
+    address internal constant MONAD_MAINNET_USDC = 0x754704Bc059F8C67012fEd69BC8A327a5aafb603;
+    uint256 internal constant MONAD_MAINNET_CHAIN_ID = 143;
     address internal constant MONAD_TESTNET_USDC = 0x534b2f3A21130d7a60830c2Df862319e593943A3;
     uint256 internal constant MONAD_TESTNET_CHAIN_ID = 10143;
 
@@ -30,10 +33,18 @@ abstract contract BeamTestBase is Test {
     address internal relayer;
 
     function _fork() internal {
-        string memory rpc = vm.envOr("MONAD_TESTNET_RPC", string("https://testnet-rpc.monad.xyz"));
-        vm.createSelectFork(rpc);
-        assertEq(block.chainid, MONAD_TESTNET_CHAIN_ID, "not Monad testnet");
-        usdc = IUSDC(MONAD_TESTNET_USDC);
+        string memory network = vm.envOr("BEAM_NETWORK", string("mainnet"));
+        if (keccak256(bytes(network)) == keccak256("testnet")) {
+            vm.createSelectFork(vm.envOr("MONAD_TESTNET_RPC", string("https://testnet-rpc.monad.xyz")));
+            assertEq(block.chainid, MONAD_TESTNET_CHAIN_ID, "not Monad testnet");
+            usdc = IUSDC(MONAD_TESTNET_USDC);
+        } else if (keccak256(bytes(network)) == keccak256("mainnet")) {
+            vm.createSelectFork(vm.envOr("MONAD_MAINNET_RPC", string("https://rpc.monad.xyz")));
+            assertEq(block.chainid, MONAD_MAINNET_CHAIN_ID, "not Monad mainnet");
+            usdc = IUSDC(MONAD_MAINNET_USDC);
+        } else {
+            revert("BEAM_NETWORK must be mainnet or testnet");
+        }
         relayer = makeAddr("relayer");
         vm.deal(relayer, 10 ether);
     }
