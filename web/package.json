@@ -1,0 +1,22 @@
+{
+  "name": "@beam/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@beam/shared": "workspace:*",
+    "@fontsource-variable/inter": "^5.2.8",
+    "canvas-confetti": "^1.9.3",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/qrcode": "^1.5.5",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12"
+  }
+}

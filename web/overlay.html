@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Beam Overlay</title>
+    <link rel="stylesheet" href="/src/overlay.css" />
+  </head>
+  <body>
+    <canvas id="confetti"></canvas>
+
+    <section id="alert" class="alert" aria-live="polite" hidden>
+      <div class="alert-amount" id="alert-amount"></div>
+      <div class="alert-line"><span class="alert-name" id="alert-name"></span> <span id="alert-verb"></span></div>
+      <div class="alert-message" id="alert-message"></div>
+    </section>
+
+    <aside id="panel" class="panel">
+      <div id="goal" class="goal" hidden>
+        <div class="goal-head">
+          <span id="goal-title" class="goal-title"></span>
+          <span class="goal-count"><span id="goal-now">$0</span> / <span id="goal-target"></span></span>
+        </div>
+        <div class="goal-track"><div id="goal-fill" class="goal-fill"></div></div>
+      </div>
+      <ol id="recent" class="recent" hidden></ol>
+    </aside>
+
+    <figure id="qr" class="qr" hidden>
+      <div id="qr-code" class="qr-code"></div>
+      <figcaption>Scan to gift</figcaption>
+    </figure>
+
+    <div id="status" class="status" hidden></div>
+    <script type="module" src="/src/overlay.ts"></script>
+  </body>
+</html>
