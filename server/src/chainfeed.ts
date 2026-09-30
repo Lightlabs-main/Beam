@@ -5,6 +5,9 @@ import type { Gift } from "./feed.js";
 
 type GiftLog = Log<bigint, number, false>;
 
+/** How long to gather one transaction's logs; they arrive together from the same block. */
+const TX_GROUP_MS = 60;
+
 /**
  * Turns BeamGifts / BeamClaims logs into the same Gift rows the indexer produces (same ids), so
  * gifts from the chain push and from Envio can be merged and de-duplicated.
@@ -105,11 +108,27 @@ export class ChainGiftFeed extends EventEmitter<{ gift: [Gift]; status: [string]
       chain: this.d.chain,
       transport: webSocket(this.wsUrl, { reconnect: { attempts: Infinity, delay: 1000 }, keepAlive: { interval: 20_000 } }),
     });
+    // The subscription delivers logs one at a time, but a split gift is two logs (GiftSent, then
+    // GiftSplit) in one transaction. Group each transaction's logs for a moment before reading them.
+    const pending = new Map<string, GiftLog[]>();
+    const flush = (tx: string) => {
+      const logs = pending.get(tx) ?? [];
+      pending.delete(tx);
+      for (const gift of giftsFromLogs(this.d, logs)) this.emit("gift", gift);
+    };
     this.unwatch = client.watchEvent({
       address: [this.d.beamGifts, this.d.beamClaims],
       onLogs: (logs) => {
         this.setStatus("connected");
-        for (const gift of giftsFromLogs(this.d, logs as GiftLog[])) this.emit("gift", gift);
+        for (const log of logs as GiftLog[]) {
+          const tx = log.transactionHash!;
+          const group = pending.get(tx);
+          if (group) group.push(log);
+          else {
+            pending.set(tx, [log]);
+            setTimeout(() => flush(tx), TX_GROUP_MS);
+          }
+        }
       },
       onError: (e) => {
         this.setStatus("reconnecting");

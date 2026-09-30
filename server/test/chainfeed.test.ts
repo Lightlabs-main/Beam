@@ -47,3 +47,13 @@ describe("chain log push → gifts (live testnet receipts)", () => {
     assert.equal(giftsFromLogs(d, logs.filter((l) => l.address.toLowerCase() === d.usdc.toLowerCase())).length, 0);
   });
 });
+
+describe("split gifts from the chain push", () => {
+  it("labels a live split gift as Split when all its logs are read together", async () => {
+    const gifts = giftsFromLogs(d, await logsOf("0x828e4f1283630a8142a2d04d3b726aff8b29f262e32b6fc1ab2c4ad600ab9893"));
+    assert.equal(gifts.length, 1);
+    assert.equal(gifts[0]!.kind, "Split");
+    assert.equal(gifts[0]!.amount, "1000000");
+    assert.equal(gifts[0]!.message, "for the whole crew");
+  });
+});
