@@ -10,7 +10,6 @@ indexer.onEvent({ contract: "BeamClaims", event: "ChatterGiftSent" }, async ({ e
   context.Gift.set({
     id: giftId,
     seq: seqOf(event.block.number, event.logIndex),
-    chainId: event.chainId,
     kind: "Chatter",
     from: p.from,
     to: undefined,
@@ -48,7 +47,6 @@ indexer.onEvent({ contract: "BeamClaims", event: "BombSent" }, async ({ event, c
   context.Gift.set({
     id: giftId,
     seq: seqOf(event.block.number, event.logIndex),
-    chainId: event.chainId,
     kind: "Bomb",
     from: p.from,
     to: undefined,

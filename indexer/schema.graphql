@@ -10,7 +10,6 @@ enum GiftKind {
 type Gift {
   id: ID!
   seq: BigInt! @index
-  chainId: Int!
   kind: GiftKind!
   from: String! @index
   # Creator paid (Direct, Split primary). Null for claimable drops, which have no payee yet.

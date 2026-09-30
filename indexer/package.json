@@ -6,7 +6,8 @@
     "config": "node scripts/write-config.mjs",
     "codegen": "node scripts/write-config.mjs && envio codegen",
     "dev": "node scripts/write-config.mjs && envio dev",
-    "start": "node scripts/write-config.mjs && envio start"
+    "start": "node scripts/write-config.mjs && envio start",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "envio": "3.12.1"

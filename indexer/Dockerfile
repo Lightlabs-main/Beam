@@ -9,5 +9,8 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --ignore-workspace
 COPY config.yaml schema.graphql ./
 RUN pnpm envio codegen
+COPY tsconfig.json ./
 COPY src ./src
+# Fail the build on handler type errors instead of at runtime.
+RUN pnpm exec tsc --noEmit
 CMD ["pnpm", "envio", "start"]

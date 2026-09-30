@@ -9,7 +9,6 @@ indexer.onEvent({ contract: "BeamGifts", event: "GiftSent" }, async ({ event, co
   context.Gift.set({
     id: eventId(event.chainId, event.transaction.hash, event.logIndex),
     seq: seqOf(event.block.number, event.logIndex),
-    chainId: event.chainId,
     kind: "Direct",
     from: p.from,
     to: p.to,
