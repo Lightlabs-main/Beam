@@ -41,14 +41,17 @@ Last updated 2026-09-30.
 
 1. Mera passkey gate (§3.2) on a real phone: create, receive, send, recover. Pages are live; needs the
    user's phone. Record it.
-2. Mainnet deployment and a separate mainnet relayer wallet.
+2. Mainnet: relayer/deployer wallet created (`0x19Ec2A9f412A00913341E9F347A84AFa1077F24e`, key in `.env`,
+   separate from testnet). Needs MON from the user, then deploy (~0.36 MON at 102 gwei; ~0.019 MON per
+   gift). Monad bills the gas limit, not gas used: keep relayer gas limits tight.
 3. Splits need a creator dashboard (the creator defines co-stream/mod/charity shares).
 4. `script/verify.ts` wired as `pnpm verify` and in CI.
 
 ## Blocked / waiting on
 
 - **Ramp** production key application (§3.3): not started by the user yet as far as recorded here.
-- **Real phone** for the Mera passkey test.
+- **Mainnet MON** for the relayer wallet above (suggested 5 MON: deploy + a few hundred gifts).
+- **Passkey gate send + recover** on the user's phone.
 
 ## Known gaps
 
