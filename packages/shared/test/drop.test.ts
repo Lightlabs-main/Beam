@@ -7,6 +7,10 @@ import {
   DropKind,
   type DropParams,
   beamClaimsAbi,
+  bombLink,
+  deriveClaimKeys,
+  firstFreeSlot,
+  parseBombFragment,
   claimDigest,
   claimLink,
   deployment,
@@ -147,5 +151,38 @@ describe("merkle proofs and claim links", () => {
     const parsed = parseClaimFragment(url.hash);
     assert.deepEqual(parsed, { key: keys[3], slot: 3, proof: merkleProof(leaves, 3) });
     assert.equal(parseClaimFragment("#k=zz&s=1"), null);
+  });
+});
+
+describe("Beam Bomb links", () => {
+  it("derives the same keys and root from the seed on every device", () => {
+    const seed = generatePrivateKey();
+    const a = deriveClaimKeys(seed, 10);
+    const b = deriveClaimKeys(seed, 10);
+    assert.deepEqual(a, b);
+    assert.equal(new Set(a.keys).size, 10);
+    for (let i = 0; i < 10; i++) assert.ok(verifyProof(merkleProof(a.leaves, i), a.root, a.leaves[i]!));
+  });
+
+  it("derived leaves match the live contract", async () => {
+    const { keys, leaves } = deriveClaimKeys(generatePrivateKey(), 3);
+    const onChain = await client.readContract({
+      address: d.beamClaims,
+      abi: beamClaimsAbi,
+      functionName: "slotLeaf",
+      args: [2, privateKeyToAccount(keys[2]!).address],
+    });
+    assert.equal(leaves[2], onChain);
+  });
+
+  it("round-trips a short bomb link and finds free slots", () => {
+    const seed = generatePrivateKey();
+    const link = bombLink("https://beamstreams.xyz", generatePrivateKey(), seed, 25);
+    assert.ok(link.length < 200, `bomb link fits in chat (${link.length} chars)`);
+    assert.deepEqual(parseBombFragment(new URL(link).hash), { seed, slots: 25 });
+    assert.equal(parseBombFragment("#b=abc&n=5"), null);
+    assert.equal(firstFreeSlot(0b1011n, 5), 2);
+    assert.equal(firstFreeSlot(0b1011n, 5, new Set([2])), 4);
+    assert.equal(firstFreeSlot(0b11111n, 5), -1);
   });
 });

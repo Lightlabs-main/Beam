@@ -240,13 +240,13 @@ export class Relayer {
 
   /** A drop's on-chain state. */
   async drop(dropId: Hex) {
-    const [sender, expiry, slots, claimed, kind, closed, perSlot, remaining] = await this.publicClient.readContract({
+    const [sender, expiry, slots, claimed, kind, closed, perSlot, remaining, slotRoot, claimedSlots] = await this.publicClient.readContract({
       address: this.o.d.beamClaims,
       abi: beamClaimsAbi,
       functionName: "drops",
       args: [dropId],
     });
-    return { dropId, exists: sender !== zeroAddress, sender, expiry, slots, claimed, kind, closed, perSlot, remaining };
+    return { dropId, exists: sender !== zeroAddress, sender, expiry, slots, claimed, kind, closed, perSlot, remaining, slotRoot, claimedSlots };
   }
 
   async isSlotClaimed(dropId: Hex, slot: number): Promise<boolean> {

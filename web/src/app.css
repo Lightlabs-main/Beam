@@ -199,8 +199,10 @@ button:focus-visible {
 .amounts.two {
   grid-template-columns: 1fr 1fr;
 }
-.amounts.two button {
-  font-size: 16px;
+.amounts.two button,
+.amounts.three button {
+  font-size: 15px;
+  padding: 12px 4px;
 }
 .amounts button[aria-pressed="true"] {
   background: linear-gradient(135deg, var(--accent), #5b8cff);

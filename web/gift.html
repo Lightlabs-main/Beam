@@ -57,9 +57,19 @@
         <!-- 2b. Compose -->
         <form class="card" id="compose" hidden style="margin-top: 14px" novalidate>
           <label>Who is it for?</label>
-          <div class="amounts two" role="group" aria-label="Recipient">
+          <div class="amounts three" role="group" aria-label="Recipient">
             <button type="button" data-for="creator" aria-pressed="true">The streamer</button>
             <button type="button" data-for="chatter" aria-pressed="false">A chatter</button>
+            <button type="button" data-for="bomb" aria-pressed="false">Beam Bomb 💣</button>
+          </div>
+          <div id="bomb-fields" hidden>
+            <label for="slots">How many chatters?</label>
+            <input id="slots" inputmode="numeric" value="5" />
+            <p class="muted small" id="bomb-split"></p>
+            <p class="muted small">
+              You'll get one link to paste in chat. The first chatters to open it each claim an equal share with a passkey
+              (one share per wallet). Anything unclaimed after 24 hours can be taken back.
+            </p>
           </div>
           <div id="chatter-fields" hidden>
             <label for="label">Their name in chat <span class="count" id="label-count"></span></label>

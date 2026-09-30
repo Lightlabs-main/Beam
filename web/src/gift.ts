@@ -4,7 +4,10 @@ import {
   MAX_LABEL_BYTES,
   MAX_MESSAGE_BYTES,
   MAX_NAME_BYTES,
+  MAX_SLOTS,
+  bombLink,
   claimLink,
+  deriveClaimKeys,
   makeClaimKeys,
   parseUsdc,
   signDrop,
@@ -15,6 +18,8 @@ import { $, balances, copyText, loadConfig, randomSalt, saveSentDrop, short, sig
 
 /** Unclaimed chatter gifts can be taken back after this (the sender can also take them back any time). */
 const CHATTER_TTL_SECONDS = 7n * 24n * 60n * 60n;
+/** A Beam Bomb is a moment on stream: whatever is unclaimed after a day goes back. */
+const BOMB_TTL_SECONDS = 24n * 60n * 60n;
 
 const NAME_KEY = "beam.name";
 const creator = location.pathname.split("/")[2] ?? "";
@@ -77,7 +82,12 @@ async function main() {
 
   // ---- compose
   let amount = parseUsdc("1");
-  let forChatter = false;
+  let mode: "creator" | "chatter" | "bomb" = "creator";
+  const slotsInput = $<HTMLInputElement>("slots");
+  const bombSlots = () => {
+    const n = Number(slotsInput.value);
+    return Number.isInteger(n) ? n : 0;
+  };
   const amountButtons = [...document.querySelectorAll<HTMLButtonElement>("button[data-amount]")];
   const forButtons = [...document.querySelectorAll<HTMLButtonElement>("button[data-for]")];
   const custom = $<HTMLInputElement>("custom");
@@ -95,23 +105,33 @@ async function main() {
     else if (amount > balance) problem = `You have ${usdLabel(balance)}. Add money or pick a smaller amount.`;
     else if (bytes(nameInput.value) > MAX_NAME_BYTES) problem = "That name is too long.";
     else if (bytes(message.value) > MAX_MESSAGE_BYTES) problem = "That message is too long.";
-    else if (forChatter && !labelInput.value.trim()) problem = "Add the chatter's name so the stream knows who it's for.";
-    else if (forChatter && bytes(labelInput.value) > MAX_LABEL_BYTES) problem = "That chatter name is too long.";
+    else if (mode === "chatter" && !labelInput.value.trim()) problem = "Add the chatter's name so the stream knows who it's for.";
+    else if (mode === "chatter" && bytes(labelInput.value) > MAX_LABEL_BYTES) problem = "That chatter name is too long.";
+    else if (mode === "bomb" && (bombSlots() < 2 || bombSlots() > MAX_SLOTS)) problem = `A Beam Bomb goes to 2–${MAX_SLOTS} chatters.`;
+    else if (mode === "bomb" && amount / BigInt(bombSlots()) < minUnits) problem = `Each share must be at least ${usdLabel(minUnits)}.`;
     send.disabled = problem !== null;
-    send.textContent = forChatter ? `Gift ${usdLabel(amount)} to ${labelInput.value.trim() || "a chatter"}` : `Send ${usdLabel(amount)}`;
-    showError("send-error", balance >= minUnits && (!forChatter || labelInput.value.trim()) ? problem : null);
+    send.textContent =
+      mode === "chatter"
+        ? `Gift ${usdLabel(amount)} to ${labelInput.value.trim() || "a chatter"}`
+        : mode === "bomb"
+          ? `Drop a ${usdLabel(amount)} Beam Bomb`
+          : `Send ${usdLabel(amount)}`;
+    $("bomb-split").textContent =
+      bombSlots() >= 2 && bombSlots() <= MAX_SLOTS ? `${bombSlots()} chatters get ${usdLabel(amount / BigInt(bombSlots()))} each.` : "";
+    showError("send-error", balance >= minUnits && (mode !== "chatter" || labelInput.value.trim()) ? problem : null);
   }
 
   for (const b of forButtons) {
     b.onclick = () => {
-      forChatter = b.dataset.for === "chatter";
+      mode = b.dataset.for as typeof mode;
       for (const x of forButtons) x.setAttribute("aria-pressed", String(x === b));
-      $("chatter-fields").hidden = !forChatter;
-      if (forChatter) labelInput.focus();
+      $("chatter-fields").hidden = mode !== "chatter";
+      $("bomb-fields").hidden = mode !== "bomb";
+      if (mode === "chatter") labelInput.focus();
       updateSend();
     };
   }
-  labelInput.oninput = updateSend;
+  labelInput.oninput = slotsInput.oninput = updateSend;
 
   for (const b of amountButtons) {
     b.onclick = () => {
@@ -147,10 +167,26 @@ async function main() {
     try {
       let body: { hash?: string; explorerUrl?: string; error?: string; dropId?: string };
       let claimUrl: string | null = null;
-      const label = labelInput.value.trim();
-      if (!forChatter) {
+      const label = mode === "bomb" ? `${bombSlots()} chatters` : labelInput.value.trim();
+      if (mode === "creator") {
         const auth = await signGift(d, wallet.account, { to: creator as `0x${string}`, meta, value: amount, validBefore, salt: randomSalt() });
         body = await post("/api/relay/gift", { to: creator, meta, auth });
+      } else if (mode === "bomb") {
+        // One seed makes every slot's claim key; the link carries only the seed.
+        const seed = randomSalt();
+        const slots = bombSlots();
+        const { root } = deriveClaimKeys(seed, slots);
+        const params = {
+          channel: creator as `0x${string}`,
+          slots,
+          slotRoot: root,
+          expiry: BigInt(Math.floor(Date.now() / 1000)) + BOMB_TTL_SECONDS,
+          recipientLabel: "",
+        };
+        const { dropId, auth } = await signDrop(d, wallet.account, { kind: DropKind.Bomb, params, meta, value: amount, validBefore, salt: randomSalt() });
+        claimUrl = bombLink(location.origin, dropId, seed, slots);
+        saveSentDrop({ dropId, link: claimUrl, label, amount: amount.toString(), channel: creator, createdAt: Date.now() });
+        body = await post("/api/relay/drop", { kind: "bomb", params, meta, auth });
       } else {
         // The claim key is born and stays in this browser; only its hash (the slot root) goes on-chain.
         const { keys, root } = makeClaimKeys(1);
@@ -176,14 +212,19 @@ async function main() {
       }
       if (!body.hash) throw new Error(friendly(body.error ?? "send failed"));
       const ms = Math.round(performance.now() - started);
-      $("sent-title").textContent = forChatter ? `${usdLabel(amount)} for ${label} is on stream` : `${usdLabel(amount)} is on stream`;
-      $("sent-detail").textContent = forChatter
-        ? `Settled on Monad in ${(ms / 1000).toFixed(1)} s. The money waits safely until ${label} claims it.`
-        : `Settled on Monad in ${(ms / 1000).toFixed(1)} s. The creator already has it.`;
+      const secs = (ms / 1000).toFixed(1);
+      $("sent-title").textContent =
+        mode === "bomb" ? `Your ${usdLabel(amount)} Beam Bomb is on stream 💣` : mode === "chatter" ? `${usdLabel(amount)} for ${label} is on stream` : `${usdLabel(amount)} is on stream`;
+      $("sent-detail").textContent =
+        mode === "bomb"
+          ? `Settled on Monad in ${secs} s. Paste the link in chat: the first ${bombSlots()} chatters to open it get ${usdLabel(amount / BigInt(bombSlots()))} each.`
+          : mode === "chatter"
+            ? `Settled on Monad in ${secs} s. The money waits safely until ${label} claims it.`
+            : `Settled on Monad in ${secs} s. The creator already has it.`;
       $<HTMLAnchorElement>("sent-link").href = body.explorerUrl!;
       $("claim-share").hidden = !claimUrl;
       if (claimUrl) {
-        $("claim-for").textContent = label;
+        $("claim-for").textContent = mode === "bomb" ? "chat (the whole Beam Bomb)" : label;
         $<HTMLInputElement>("claim-url").value = claimUrl;
         $("claim-copy").onclick = () => copyText(claimUrl!, $("claim-copy"));
         const share = $("claim-native-share");

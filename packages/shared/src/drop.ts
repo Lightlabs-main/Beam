@@ -3,6 +3,7 @@ import {
   type Hex,
   type LocalAccount,
   encodeAbiParameters,
+  encodePacked,
   hashTypedData,
   hexToSignature,
   keccak256,
@@ -86,6 +87,25 @@ export function makeClaimKeys(slots: number): { keys: Hex[]; leaves: Hex[]; root
   const keys = Array.from({ length: slots }, () => generatePrivateKey());
   const leaves = keys.map((k, i) => slotLeaf(i, privateKeyToAccount(k).address));
   return { keys, leaves, root: merkleRoot(leaves) };
+}
+
+/**
+ * Claim keys derived from one 32-byte seed: key_i = keccak256(seed ‖ uint32 i). A Beam Bomb link
+ * carries only the seed (short enough for any chat), and each claimer's browser rebuilds every
+ * leaf and proof from it.
+ */
+export function deriveClaimKeys(seed: Hex, slots: number): { keys: Hex[]; leaves: Hex[]; root: Hex } {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(seed)) throw new Error("seed must be 32 bytes");
+  if (!Number.isInteger(slots) || slots < 1 || slots > MAX_SLOTS) throw new Error(`slots must be 1..${MAX_SLOTS}`);
+  const keys = Array.from({ length: slots }, (_, i) => keccak256(encodePacked(["bytes32", "uint32"], [seed, i])));
+  const leaves = keys.map((k, i) => slotLeaf(i, privateKeyToAccount(k).address));
+  return { keys, leaves, root: merkleRoot(leaves) };
+}
+
+/** Lowest slot not yet claimed, from BeamClaims' `claimedSlots` bitmap; -1 when all are gone. */
+export function firstFreeSlot(claimedSlots: bigint, slots: number, skip: ReadonlySet<number> = new Set()): number {
+  for (let i = 0; i < slots; i++) if (((claimedSlots >> BigInt(i)) & 1n) === 0n && !skip.has(i)) return i;
+  return -1;
 }
 
 /** BeamClaims.dropNonce: the sender's EIP-3009 nonce and the drop's id. */
@@ -203,6 +223,20 @@ export function claimLink(origin: string, dropId: Hex, slot: number, key: Hex, p
   const frag = new URLSearchParams({ k: key.slice(2), s: String(slot) });
   if (proof.length) frag.set("p", proof.map((h) => h.slice(2)).join("."));
   return `${origin}/c/${dropId}#${frag}`;
+}
+
+/** Beam Bomb link: https://<host>/c/<bombId>#b=<seed>&n=<slots>. One link for the whole chat. */
+export function bombLink(origin: string, bombId: Hex, seed: Hex, slots: number): string {
+  return `${origin}/c/${bombId}#${new URLSearchParams({ b: seed.slice(2), n: String(slots) })}`;
+}
+
+export function parseBombFragment(hash: string): { seed: Hex; slots: number } | null {
+  const f = new URLSearchParams(hash.replace(/^#/, ""));
+  const b = f.get("b");
+  const n = f.get("n");
+  if (!b || !/^[0-9a-f]{64}$/i.test(b) || !n || !/^\d{1,3}$/.test(n)) return null;
+  const slots = Number(n);
+  return slots >= 2 && slots <= MAX_SLOTS ? { seed: `0x${b}` as Hex, slots } : null;
 }
 
 export function parseClaimFragment(hash: string): { key: Hex; slot: number; proof: Hex[] } | null {
