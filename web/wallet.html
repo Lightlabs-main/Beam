@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0a14" />
+    <title>Your wallet · Beam</title>
+    <link rel="stylesheet" href="/src/app.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/">Beam</a>
+        <span class="net" id="net" hidden></span>
+      </header>
+
+      <h1>Your Beam wallet</h1>
+      <p class="sub">A passkey is your wallet: the same passkey opens the same wallet on any device it syncs to.</p>
+      <p class="error" id="page-error" hidden></p>
+
+      <section class="card" id="signin">
+        <h2>Open your wallet</h2>
+        <p class="muted small">Uses Face ID, fingerprint or your screen lock. Nothing to install.</p>
+        <div class="field">
+          <label for="signup-name">Name for the passkey</label>
+          <input id="signup-name" maxlength="32" autocomplete="nickname" placeholder="e.g. Tunde" />
+        </div>
+        <button id="signin-primary" type="button">Create my wallet with a passkey</button>
+        <button id="signin-other" class="ghost" type="button">I have a Beam passkey on another device</button>
+        <p class="error" id="signin-error" hidden></p>
+      </section>
+
+      <section id="wallet" hidden>
+        <section class="card">
+          <h2>Address</h2>
+          <div class="addr">
+            <input id="address" readonly aria-label="Your wallet address" />
+            <button class="inline" id="copy" type="button">Copy</button>
+          </div>
+          <p class="small"><a id="explorer" target="_blank" rel="noopener">View on the Monad explorer ↗</a></p>
+        </section>
+
+        <section class="card">
+          <h2>Balances</h2>
+          <div class="chip">
+            <div>
+              <div class="muted small">USDC</div>
+              <div class="bal" id="usdc">…</div>
+            </div>
+            <div style="text-align: right">
+              <div class="muted small">MON (gas)</div>
+              <div class="bal" id="mon">…</div>
+            </div>
+          </div>
+          <p class="muted small">You never need MON: Beam pays the network fee for every gift and claim.</p>
+          <button class="ghost" id="refresh" type="button">Refresh</button>
+        </section>
+
+        <section class="card">
+          <h2>Recovery phrase</h2>
+          <p class="muted small">
+            Your passkey already recovers this wallet on any device where it syncs. The 24-word phrase is a backup that
+            opens it in any Ethereum-style wallet app. Anyone with it controls your money: never share it.
+          </p>
+          <button class="ghost" id="reveal" type="button">Show recovery phrase</button>
+          <ol class="phrase" id="phrase" hidden></ol>
+          <p class="error" id="reveal-error" hidden></p>
+        </section>
+
+        <section class="card">
+          <h2>Test recovery</h2>
+          <p class="muted small">
+            Forget this device, then choose "I have a Beam passkey on another device". The same address should come back.
+          </p>
+          <button class="ghost" id="forget" type="button">Forget this device</button>
+        </section>
+      </section>
+    </div>
+    <script type="module" src="/src/walletpage.ts"></script>
+  </body>
+</html>

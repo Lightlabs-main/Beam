@@ -19,6 +19,7 @@ import {
   parseUsdc,
   signGift,
   usdcDomain,
+  usdLabel,
 } from "../src/index.js";
 
 const d = deployment("testnet");
@@ -98,5 +99,12 @@ describe("USDC amounts", () => {
     assert.throws(() => parseUsdc("1.2345678"));
     assert.throws(() => parseUsdc("-1"));
     assert.throws(() => parseUsdc("1e6"));
+  });
+
+  it("labels dollars to the cent", () => {
+    assert.equal(usdLabel(1_000_000n), "$1");
+    assert.equal(usdLabel(500_000n), "$0.50");
+    assert.equal(usdLabel(12_345_678n), "$12.35");
+    assert.equal(usdLabel(0n), "$0");
   });
 });

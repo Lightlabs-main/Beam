@@ -127,6 +127,14 @@ export function parseUsdc(amount: string): bigint {
   return BigInt(m[1]) * 10n ** BigInt(USDC_DECIMALS) + BigInt((m[2] ?? "").padEnd(USDC_DECIMALS, "0"));
 }
 
+/** "$1", "$0.50", "$12.34": USDC base units as a dollar label, rounded to the cent, no floats. */
+export function usdLabel(units: bigint): string {
+  const cents = (units + 5_000n) / 10_000n;
+  const whole = cents / 100n;
+  const frac = cents % 100n;
+  return frac === 0n ? `$${whole}` : `$${whole}.${frac.toString().padStart(2, "0")}`;
+}
+
 export function formatUsdc(units: bigint): string {
   const whole = units / 10n ** BigInt(USDC_DECIMALS);
   const frac = (units % 10n ** BigInt(USDC_DECIMALS)).toString().padStart(USDC_DECIMALS, "0").replace(/0+$/, "");

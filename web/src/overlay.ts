@@ -1,4 +1,4 @@
-import { parseUsdc } from "@beam/shared";
+import { parseUsdc, usdLabel } from "@beam/shared";
 import confetti from "canvas-confetti";
 import QRCode from "qrcode";
 
@@ -32,13 +32,7 @@ function setStatus(text: string | null) {
   status.textContent = text ?? "";
 }
 
-/** "$1", "$0.50", "$12.34": USDC base units to a dollar label, without floating point. */
-function dollars(units: bigint): string {
-  const cents = (units + 5_000n) / 10_000n;
-  const whole = cents / 100n;
-  const frac = cents % 100n;
-  return frac === 0n ? `$${whole}` : `$${whole}.${frac.toString().padStart(2, "0")}`;
-}
+const dollars = usdLabel;
 
 const nameOf = (g: Gift) => g.displayName.trim() || `${g.from.slice(0, 6)}…${g.from.slice(-4)}`;
 

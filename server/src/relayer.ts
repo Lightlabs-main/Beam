@@ -13,6 +13,10 @@ import {
 import { nonceManager, privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 
+const erc20BalanceAbi = [
+  { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ type: "address" }], outputs: [{ type: "uint256" }] },
+] as const;
+
 const address = z.string().refine(isAddress, "invalid address").transform((a) => a as Address);
 const bytes32 = z.string().regex(/^0x[0-9a-fA-F]{64}$/, "expected 32-byte hex").transform((h) => h as Hex);
 const uint = z.string().regex(/^\d{1,78}$/, "expected a decimal integer string").transform(BigInt);
@@ -80,6 +84,15 @@ export class Relayer {
 
   async balance(): Promise<bigint> {
     return this.publicClient.getBalance({ address: this.account.address });
+  }
+
+  /** A viewer's balances: USDC to gift with, and MON, which Beam never asks them to hold. */
+  async balances(address: Address): Promise<{ address: Address; usdc: bigint; mon: bigint }> {
+    const [usdc, mon] = await Promise.all([
+      this.publicClient.readContract({ address: this.o.d.usdc, abi: erc20BalanceAbi, functionName: "balanceOf", args: [address] }),
+      this.publicClient.getBalance({ address }),
+    ]);
+    return { address, usdc, mon };
   }
 
   /** Validates, simulates and submits a direct gift; resolves once the chain has included it. */

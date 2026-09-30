@@ -9,6 +9,8 @@ export default defineConfig({
       input: {
         index: resolve(import.meta.dirname, "index.html"),
         overlay: resolve(import.meta.dirname, "overlay.html"),
+        gift: resolve(import.meta.dirname, "gift.html"),
+        wallet: resolve(import.meta.dirname, "wallet.html"),
       },
     },
   },

@@ -101,7 +101,16 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
   };
 
   async function serveStatic(pathname: string, req: IncomingMessage, res: ServerResponse) {
-    const route = pathname === "/overlay" ? "/overlay.html" : pathname === "/" ? "/index.html" : pathname;
+    const route =
+      pathname === "/"
+        ? "/index.html"
+        : pathname === "/overlay"
+          ? "/overlay.html"
+          : pathname === "/wallet"
+            ? "/wallet.html"
+            : /^\/g\/0x[0-9a-fA-F]{40}\/?$/.test(pathname)
+              ? "/gift.html"
+              : pathname;
     const file = normalize(join(config.webDir, route));
     if (!file.startsWith(normalize(config.webDir))) return notFound(req, res);
     try {
@@ -147,6 +156,10 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
       if (req.method === "POST" && path === "/api/relay/gift") {
         if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many gifts from this address, try again in a minute" });
         return json(res, 200, await relayer.relayGift(await readBody(req)));
+      }
+      const accountRoute = /^\/api\/accounts\/(0x[0-9a-fA-F]{40})$/.exec(path);
+      if (req.method === "GET" && accountRoute) {
+        return json(res, 200, await relayer.balances(accountRoute[1] as `0x${string}`));
       }
       const creatorRoute = /^\/api\/creators\/(0x[0-9a-fA-F]{40})\/(gifts|total)$/.exec(path);
       if (req.method === "GET" && creatorRoute) {

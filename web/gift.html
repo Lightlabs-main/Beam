@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0a14" />
+    <title>Send a gift · Beam</title>
+    <link rel="stylesheet" href="/src/app.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/">Beam</a>
+        <span class="net" id="net" hidden></span>
+      </header>
+
+      <h1>Send a gift</h1>
+      <p class="sub">It appears on the stream as soon as it settles, and the money goes straight to <span class="mono" id="creator"></span>.</p>
+
+      <p class="error" id="page-error" hidden></p>
+
+      <!-- 1. Passkey wallet -->
+      <section class="card" id="signin">
+        <h2>Your Beam wallet</h2>
+        <p class="muted small">Secured by Face ID, fingerprint or your screen lock. No app, no seed phrase, and Beam pays the network fee.</p>
+        <div class="field">
+          <label for="signup-name">Your name on stream</label>
+          <input id="signup-name" maxlength="32" autocomplete="nickname" placeholder="e.g. Tunde" />
+        </div>
+        <button id="signin-primary" type="button">Create my wallet with a passkey</button>
+        <button id="signin-other" class="ghost" type="button">I have a Beam passkey on another device</button>
+        <p class="error" id="signin-error" hidden></p>
+      </section>
+
+      <!-- 2. Signed in -->
+      <section id="wallet" hidden>
+        <div class="chip">
+          <div>
+            <div class="muted small">Your balance</div>
+            <div class="bal" id="balance">…</div>
+          </div>
+          <div class="muted small mono" id="me"></div>
+        </div>
+
+        <!-- 2a. Needs funding -->
+        <section class="card" id="fund" hidden style="margin-top: 14px">
+          <h2>Add money first</h2>
+          <p class="muted small">Fund your wallet once. A deposit takes a few minutes to arrive; after that, every gift is instant.</p>
+          <p class="small" id="fund-how"></p>
+          <div class="addr">
+            <input id="fund-address" readonly aria-label="Your wallet address" />
+            <button class="inline" id="fund-copy" type="button">Copy</button>
+          </div>
+          <p class="muted small" id="fund-wait"><span class="spinner"></span>Waiting for your deposit…</p>
+        </section>
+
+        <!-- 2b. Compose -->
+        <form class="card" id="compose" hidden style="margin-top: 14px" novalidate>
+          <label>Amount</label>
+          <div class="amounts" role="group" aria-label="Amount">
+            <button type="button" data-amount="0.5" aria-pressed="false">$0.50</button>
+            <button type="button" data-amount="1" aria-pressed="true">$1</button>
+            <button type="button" data-amount="5" aria-pressed="false">$5</button>
+          </div>
+          <label for="custom">Or another amount (USD)</label>
+          <input id="custom" inputmode="decimal" placeholder="2.50" />
+
+          <label for="name">Name on stream <span class="count" id="name-count"></span></label>
+          <input id="name" maxlength="32" autocomplete="nickname" />
+
+          <label for="message">Message <span class="count" id="message-count"></span></label>
+          <textarea id="message" maxlength="200" placeholder="Say something (optional)"></textarea>
+
+          <button id="send" type="submit">Send $1</button>
+          <p class="error" id="send-error" hidden></p>
+        </form>
+
+        <!-- 2c. Sent -->
+        <section class="card success" id="sent" hidden style="margin-top: 14px">
+          <div class="big">🎉</div>
+          <h2 id="sent-title">It's on stream</h2>
+          <p class="muted" id="sent-detail"></p>
+          <p class="small"><a id="sent-link" target="_blank" rel="noopener">See it on the Monad explorer ↗</a></p>
+          <button id="again" type="button">Send another</button>
+        </section>
+      </section>
+    </div>
+    <script type="module" src="/src/gift.ts"></script>
+  </body>
+</html>
