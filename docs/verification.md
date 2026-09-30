@@ -62,6 +62,34 @@ Tx `0x56ef2f7682f3fd89443bcf5030200fcd137a8b82f05db3ef2d8e56200219aa6d`, block 6
 Reproduce with [scripts/testnet-gift.ps1](../scripts/testnet-gift.ps1) (simulates only; add `-Send` to broadcast).
 It reads `RELAYER_*`, `VIEWER_*` and `CREATOR_*` from `.env`.
 
+## Envio indexer → WebSocket → overlay (§3.4)
+
+Stack on AWS Lightsail (London, 16.61.50.207): Envio HyperIndex 3.12.1 on HyperSync, Hasura
+v2.43.0 streaming subscription (100 ms refetch), Beam server WebSocket. 2026-09-30.
+
+- The indexer backfilled the first gasless gift (`0x56ef2f76…`) and switched to realtime.
+- A real $2 gift sent through the relayer API (`0xae44ab177297bac3ed15475151b01f7bb6121875fa4879e9484716aeccac24c4`)
+  fired the overlay alert ("$2 · JUDGE · live through Envio + WebSocket"), moved the goal bar
+  from $1 to $3 and topped the recent list. No step used polling of an RPC.
+
+End-to-end latency, three real $0.50 gifts, all stages timed on the VPS clock by
+`server/scripts/latency-probe.ts` (overlay WebSocket connected to the server on the VPS):
+
+| Tx | Relay request → receipt | Receipt → overlay WebSocket | Total |
+|---|---|---|---|
+| `0xff1ee253…860d` | 720 ms | 1041 ms | 1761 ms |
+| `0x0c163ce9…5b04` | 680 ms | 134 ms | 814 ms |
+| `0x537aa257…2d39` | 698 ms | 557 ms | 1255 ms |
+
+Settlement is steady (~0.7 s including simulation). Indexing adds 0.1–1.0 s: HyperSync is polled
+about once a second. Envio's realtime-RPC mode could remove most of that, but every public Monad
+testnet RPC caps `eth_getLogs` at 100 blocks and throttles bursts (30 parallel requests took
+7–27 s; Ankr failed a third), and Envio fell back to HyperSync within ~4 s each minute. It needs a
+dedicated RPC endpoint (`ENVIO_REALTIME_RPC`).
+
+Bug found and fixed here: a (re)syncing indexer streams old gifts, which would have replayed old
+alerts on stream. The server now only broadcasts gifts from the last 60 s.
+
 ## Not yet verified
 
 - Split gifts, claims, reclaims and bombs against the live deployment (covered by fork tests only).

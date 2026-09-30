@@ -20,25 +20,23 @@ Last updated 2026-09-30.
 - **Overlay** (`web/overlay.html`): alert + confetti, goal bar, recent gifts, QR. Driven only by
   indexed events.
 - **Deployment** (`deploy/`): Docker Compose stack (Postgres, Hasura, Envio, server, Caddy HTTPS),
-  VPS bootstrap and deploy scripts. Running on AWS Lightsail (London, static IP 16.61.50.207):
-  Postgres, Hasura and the server are up; the indexer image builds (codegen + handler type-check)
-  but waits for an Envio API token.
+  running on AWS Lightsail (London, static IP 16.61.50.207). All services up.
+- **§3.4 passed**: a real gift reached the overlay through Envio over WebSocket; 0.8–1.8 s from
+  relay request to overlay (details in `docs/verification.md`).
 
 ## Next
 
-1. Bring up the VPS stack; confirm a real gift reaches the overlay through Envio over WebSocket and
-   measure chain → overlay latency (§3.4).
-2. Mera passkey gate (§3.2): create an account on a real phone, receive and send USDC gaslessly,
+1. Mera passkey gate (§3.2): create an account on a real phone, receive and send USDC gaslessly,
    recover on a second device. Record it.
-3. Gift page `/g/<creator>`: Mera passkey → amount → sign → relay. The overlay QR already points here.
-4. Drops need a committed `channel` (whose stream) so chatter gifts and bombs can be routed to the
+2. Gift page `/g/<creator>`: Mera passkey → amount → sign → relay. The overlay QR already points here.
+3. Drops need a committed `channel` (whose stream) so chatter gifts and bombs can be routed to the
    right overlay: contract change + redeploy on testnet.
-5. Live testnet runs of splits, claims, reclaims and bombs.
-6. `script/verify.ts` wired as `pnpm verify` and in CI.
+4. Live testnet runs of splits, claims, reclaims and bombs.
+5. `script/verify.ts` wired as `pnpm verify` and in CI.
 
 ## Blocked / waiting on
 
-- **Envio API token**: the indexer refuses to start without one (HyperSync requires it).
+- **Dedicated Monad RPC** (optional): would cut up to ~1 s of indexing latency (see verification).
 - **Domain** with an A record to 16.61.50.207 (HTTPS is required for passkeys). Mera binds wallets
   to the domain, so it must be the one Beam keeps; the server behind it can change freely.
 - **Ramp** production key application (§3.3): not started by the user yet as far as recorded here.
