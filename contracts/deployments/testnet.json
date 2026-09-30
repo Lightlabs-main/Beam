@@ -1,0 +1,14 @@
+{
+  "network": "monad-testnet",
+  "chainId": 10143,
+  "usdc": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+  "BeamGifts": {
+    "address": "0x649Cdc9A801a8d7918f28FBB3b178568bcFBF0a7",
+    "tx": "0x7bd5f9ba59a0403a0fc3359b5569ba26bb56c3b2cc4a729a3f97f95b16488c1c"
+  },
+  "BeamClaims": {
+    "address": "0x6C336c1c86Cf187564878332d38CA973be377f70",
+    "tx": "0x5d02b8a5cff20ce8f6f9ce522fba792e603c8c3c150f997b88c8f985c32185ff"
+  },
+  "commit": "1892b9f"
+}
