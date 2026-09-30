@@ -1,0 +1,17 @@
+{
+  "name": "@beam/indexer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "config": "node scripts/write-config.mjs",
+    "codegen": "node scripts/write-config.mjs && envio codegen",
+    "dev": "node scripts/write-config.mjs && envio dev",
+    "start": "node scripts/write-config.mjs && envio start"
+  },
+  "dependencies": {
+    "envio": "3.12.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

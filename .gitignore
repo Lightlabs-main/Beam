@@ -5,3 +5,6 @@ contracts/out/
 contracts/cache/
 contracts/broadcast/
 node_modules/
+indexer/generated/
+dist/
+*.tsbuildinfo

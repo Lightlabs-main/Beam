@@ -1,0 +1,76 @@
+enum GiftKind {
+  Direct
+  Split
+  Chatter
+  Bomb
+}
+
+# One row per gift, whatever its kind: what the overlay, chat and gift page render.
+# `seq` orders gifts across blocks (blockNumber * 1e6 + logIndex) for streaming subscriptions.
+type Gift {
+  id: ID!
+  seq: BigInt! @index
+  chainId: Int!
+  kind: GiftKind!
+  from: String! @index
+  # Creator paid (Direct, Split primary). Null for claimable drops, which have no payee yet.
+  to: String @index
+  amount: BigInt!
+  displayName: String!
+  message: String!
+  actionCode: Int!
+  dropId: String @index
+  recipientLabel: String
+  slots: Int
+  expiry: BigInt
+  ts: BigInt!
+  blockNumber: Int!
+  logIndex: Int!
+  txHash: String!
+}
+
+type SplitPayout {
+  id: ID!
+  giftId: String! @index
+  from: String!
+  recipient: String! @index
+  amount: BigInt!
+  position: Int!
+  ts: BigInt!
+  txHash: String!
+}
+
+type Drop {
+  id: ID!
+  kind: GiftKind!
+  sender: String! @index
+  amount: BigInt!
+  slots: Int!
+  claimed: Int!
+  claimedAmount: BigInt!
+  refunded: BigInt!
+  closed: Boolean!
+  expiry: BigInt!
+  giftId: String!
+}
+
+type Claim {
+  id: ID!
+  seq: BigInt! @index
+  dropId: String! @index
+  slot: Int!
+  recipient: String! @index
+  amount: BigInt!
+  ts: BigInt!
+  txHash: String!
+}
+
+type Reclaim {
+  id: ID!
+  dropId: String! @index
+  sender: String!
+  amount: BigInt!
+  expired: Boolean!
+  ts: BigInt!
+  txHash: String!
+}
