@@ -36,6 +36,11 @@ Last updated 2026-09-30.
 - **Beam Bomb** (live): one 163-character link; first chatters each claim a share; races, double
   claims, latecomers and dust all verified on testnet.
 - **Passkey gate (§3.2)**: create + receive verified on a real phone; send + recover pending.
+- **Creator dashboard** `/creator`: OBS link, `!gift` command for Nightbot/StreamElements, signed
+  settings (name, goal, split shares). **Instant splits** live: one gift paid three wallets in one tx.
+- **`pnpm verify` + CI** (GitHub Actions): typecheck, live-testnet tests, verify, indexer codegen,
+  Forge suite on mainnet and testnet forks. Green.
+- **README** (§11).
 
 ## Next
 
@@ -44,8 +49,8 @@ Last updated 2026-09-30.
 2. Mainnet: relayer/deployer wallet created (`0x19Ec2A9f412A00913341E9F347A84AFa1077F24e`, key in `.env`,
    separate from testnet). Needs MON from the user, then deploy (~0.36 MON at 102 gwei; ~0.019 MON per
    gift). Monad bills the gas limit, not gas used: keep relayer gas limits tight.
-3. Splits need a creator dashboard (the creator defines co-stream/mod/charity shares).
-4. `script/verify.ts` wired as `pnpm verify` and in CI.
+3. Gift Actions beyond confetti (TTS, effects) and chat auto-announce.
+4. Demo video; real streamers.
 
 ## Blocked / waiting on
 

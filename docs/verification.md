@@ -179,6 +179,21 @@ one link derived from a single seed (163 characters).
 Known limit: "one share per wallet" stops one wallet taking two shares, but a person can make several
 passkey wallets. Bomb links should be dropped in chat for a crowd, not relied on for strict fairness.
 
+## Instant splits and signed creator settings (testnet)
+
+`server/scripts/split-flow.ts` against https://beamstreams.xyz, 2026-09-30:
+
+| Case | Result |
+|---|---|
+| Creator signs settings: Mod 10%, Charity 5% | saved; creator keeps 85% |
+| Same settings signed by another wallet | refused: 403 |
+| Viewer gifts $1 | one transaction, 918 ms: `0x828e4f1283630a8142a2d04d3b726aff8b29f262e32b6fc1ab2c4ad600ab9893` |
+| Payouts | creator +$0.85, mod +$0.10, charity +$0.05, BeamGifts +$0 |
+
+Found and fixed: Monad's log subscription delivers a transaction's logs one at a time, so the chain
+push labelled that split "Direct". Logs are now grouped per transaction for 60 ms; the re-run
+(`0x09295b35340a31109a46f7b878aa164ab1ced588d2e134d2a85f2b24de0d2eb4`) arrived as a Split.
+
 ## Mera passkey gate (§3.2), real phone
 
 2026-09-30, beamstreams.xyz (rpId `beamstreams.xyz`), `@category-labs/mera` 0.2.0.
