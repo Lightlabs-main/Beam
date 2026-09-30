@@ -196,6 +196,12 @@ button:focus-visible {
   font-size: 20px;
   padding: 14px 0;
 }
+.amounts.two {
+  grid-template-columns: 1fr 1fr;
+}
+.amounts.two button {
+  font-size: 16px;
+}
 .amounts button[aria-pressed="true"] {
   background: linear-gradient(135deg, var(--accent), #5b8cff);
   border-color: transparent;

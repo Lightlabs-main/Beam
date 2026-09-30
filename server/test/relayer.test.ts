@@ -2,7 +2,7 @@
 // broadcasts a transaction; the chain's own simulation decides every outcome.
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { deployment, parseUsdc, signGift } from "@beam/shared";
+import { DropKind, deployment, makeClaimKeys, parseUsdc, signDrop, signGift, signReclaim } from "@beam/shared";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { RelayError, Relayer } from "../src/relayer.js";
 
@@ -90,5 +90,80 @@ describe("relayer against live Monad testnet", () => {
     const e = await rejection(relayer().relayGift(body));
     assert.equal(e.status, 422);
     assert.equal(e.message, "FiatTokenV2: invalid signature");
+  });
+});
+
+describe("drop and claim relay against live Monad testnet", () => {
+  const now = () => BigInt(Math.floor(Date.now() / 1000));
+
+  async function signedDrop(overrides: { label?: string; channel?: `0x${string}` } = {}) {
+    const sender = privateKeyToAccount(generatePrivateKey());
+    const params = {
+      channel: creator,
+      slots: 1,
+      slotRoot: makeClaimKeys(1).root,
+      expiry: now() + 3600n,
+      recipientLabel: overrides.label ?? "@Tunde",
+    };
+    const meta = { displayName: "JUDGE", message: "for you", actionCode: 3 };
+    const { auth } = await signDrop(d, sender, {
+      kind: DropKind.Chatter,
+      params,
+      meta,
+      value: parseUsdc("1"),
+      validBefore: now() + 600n,
+      salt: generatePrivateKey(),
+    });
+    return json({ kind: "chatter", params: { ...params, channel: overrides.channel ?? params.channel }, meta, auth });
+  }
+
+  it("simulates a chatter drop: a valid signature from an empty wallet fails on balance", async () => {
+    const e = await rejection(relayer().relayDrop(await signedDrop()));
+    assert.equal(e.status, 422);
+    assert.equal(e.message, "ERC20: transfer amount exceeds balance");
+  });
+
+  it("refuses a drop moved to another stream", async () => {
+    const e = await rejection(relayer().relayDrop(await signedDrop({ channel: privateKeyToAccount(generatePrivateKey()).address })));
+    assert.equal(e.status, 422);
+    assert.equal(e.message, "FiatTokenV2: invalid signature");
+  });
+
+  it("rejects an over-long recipient label before touching the chain", async () => {
+    const e = await rejection(relayer().relayDrop(await signedDrop({ label: "@this-label-is-way-longer-than-32-bytes" })));
+    assert.equal(e.status, 400);
+  });
+
+  it("refuses to claim a drop that does not exist", async () => {
+    const recipient = privateKeyToAccount(generatePrivateKey()).address;
+    const e = await rejection(
+      relayer().relayClaim({ dropId: generatePrivateKey(), slot: 0, recipient, proof: [], claimSig: `0x${"11".repeat(65)}` }),
+    );
+    assert.equal(e.status, 422);
+    assert.equal(e.message, "UnknownDrop");
+  });
+
+  it("refuses to pay the real @Tunde drop twice", async () => {
+    const dropId = "0x18f3adff7317aa85201c8462b8fe2b541eadcb29d2ebb5caf268e4b99dba114c";
+    const state = await relayer().drop(dropId);
+    assert.equal(state.exists, true);
+    assert.equal(state.closed, true);
+    const recipient = privateKeyToAccount(generatePrivateKey()).address;
+    const e = await rejection(relayer().relayClaim({ dropId, slot: 0, recipient, proof: [], claimSig: `0x${"11".repeat(65)}` }));
+    assert.equal(e.status, 422);
+    assert.equal(e.message, "DropClosed");
+  });
+});
+
+describe("reclaim relay against live Monad testnet", () => {
+  it("only the drop's sender can take it back", async () => {
+    // The real @Tunde drop is closed; a stranger's signature is refused before anything else.
+    const dropId = "0x18f3adff7317aa85201c8462b8fe2b541eadcb29d2ebb5caf268e4b99dba114c";
+    const stranger = privateKeyToAccount(generatePrivateKey());
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+    const senderSig = await signReclaim(d, stranger, dropId, deadline);
+    const e = await rejection(relayer().relayReclaim(json({ dropId, deadline, senderSig })));
+    assert.equal(e.status, 422);
+    assert.equal(e.message, "NotSender");
   });
 });

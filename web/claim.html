@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0a14" />
+    <meta name="referrer" content="no-referrer" />
+    <title>You got a gift · Beam</title>
+    <link rel="stylesheet" href="/src/app.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/">Beam</a>
+        <span class="net" id="net" hidden></span>
+      </header>
+
+      <p class="error" id="page-error" hidden></p>
+
+      <section id="gift" hidden>
+        <div class="card success">
+          <div class="big">🎁</div>
+          <h2 id="headline">You got a gift</h2>
+          <p class="muted" id="from-line"></p>
+          <p id="message" hidden style="font-size: 18px"></p>
+        </div>
+
+        <section class="card" id="signin">
+          <h2>Claim it with a passkey</h2>
+          <p class="muted small">
+            Makes you a Beam wallet secured by Face ID, fingerprint or your screen lock. No app, no seed phrase, and Beam
+            pays the network fee.
+          </p>
+          <div class="field">
+            <label for="signup-name">Your name</label>
+            <input id="signup-name" maxlength="32" autocomplete="nickname" />
+          </div>
+          <button id="signin-primary" type="button">Create my wallet with a passkey</button>
+          <button id="signin-other" class="ghost" type="button">I have a Beam passkey on another device</button>
+          <p class="error" id="signin-error" hidden></p>
+        </section>
+
+        <section class="card" id="claiming" hidden>
+          <p><span class="spinner"></span><span id="claiming-text">Claiming…</span></p>
+          <p class="error" id="claim-error" hidden></p>
+          <button id="claim-retry" type="button" hidden>Try again</button>
+        </section>
+      </section>
+
+      <section class="card success" id="done" hidden>
+        <div class="big">🎉</div>
+        <h2 id="done-title"></h2>
+        <p class="muted" id="done-detail"></p>
+        <p class="small"><a id="done-link" target="_blank" rel="noopener">See it on the Monad explorer ↗</a></p>
+        <a href="/wallet"><button type="button">Open my wallet</button></a>
+        <a id="gift-back"><button class="ghost" type="button">Gift on the same stream</button></a>
+      </section>
+
+      <section class="card" id="gone" hidden>
+        <h2 id="gone-title"></h2>
+        <p class="muted" id="gone-detail"></p>
+        <a href="/"><button class="ghost" type="button">What is Beam?</button></a>
+      </section>
+    </div>
+    <script type="module" src="/src/claim.ts"></script>
+  </body>
+</html>

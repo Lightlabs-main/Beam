@@ -11,6 +11,7 @@ export default defineConfig({
         overlay: resolve(import.meta.dirname, "overlay.html"),
         gift: resolve(import.meta.dirname, "gift.html"),
         wallet: resolve(import.meta.dirname, "wallet.html"),
+        claim: resolve(import.meta.dirname, "claim.html"),
       },
     },
   },

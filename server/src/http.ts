@@ -110,7 +110,9 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
             ? "/wallet.html"
             : /^\/g\/0x[0-9a-fA-F]{40}\/?$/.test(pathname)
               ? "/gift.html"
-              : pathname;
+              : /^\/c\/0x[0-9a-fA-F]{64}\/?$/.test(pathname)
+                ? "/claim.html"
+                : pathname;
     const file = normalize(join(config.webDir, route));
     if (!file.startsWith(normalize(config.webDir))) return notFound(req, res);
     try {
@@ -156,6 +158,36 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
       if (req.method === "POST" && path === "/api/relay/gift") {
         if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many gifts from this address, try again in a minute" });
         return json(res, 200, await relayer.relayGift(await readBody(req)));
+      }
+      if (req.method === "POST" && path === "/api/relay/drop") {
+        if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many gifts from this address, try again in a minute" });
+        return json(res, 200, await relayer.relayDrop(await readBody(req)));
+      }
+      if (req.method === "POST" && path === "/api/relay/claim") {
+        if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many claims from this address, try again in a minute" });
+        return json(res, 200, await relayer.relayClaim(await readBody(req)));
+      }
+      if (req.method === "POST" && path === "/api/relay/reclaim") {
+        if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many requests from this address, try again in a minute" });
+        return json(res, 200, await relayer.relayReclaim(await readBody(req)));
+      }
+      const dropRoute = /^\/api\/drops\/(0x[0-9a-fA-F]{64})$/.exec(path);
+      if (req.method === "GET" && dropRoute) {
+        const dropId = dropRoute[1] as `0x${string}`;
+        const slot = Number(url.searchParams.get("slot") ?? 0);
+        const [drop, slotClaimed, gift] = await Promise.all([
+          relayer.drop(dropId),
+          Number.isInteger(slot) && slot >= 0 && slot < 100 ? relayer.isSlotClaimed(dropId, slot) : Promise.resolve(false),
+          // Indexed details are a nicety: the claim works from chain state alone.
+          indexed.giftByDrop(dropId).catch(() => null),
+        ]);
+        if (!drop.exists) return json(res, 404, { error: "no gift with this link exists" });
+        return json(res, 200, {
+          ...drop,
+          slotClaimed,
+          expired: Number(drop.expiry) * 1000 <= Date.now(),
+          from: gift ? { name: gift.displayName, message: gift.message, recipientLabel: gift.recipientLabel, channel: gift.channel } : null,
+        });
       }
       const accountRoute = /^\/api\/accounts\/(0x[0-9a-fA-F]{40})$/.exec(path);
       if (req.method === "GET" && accountRoute) {

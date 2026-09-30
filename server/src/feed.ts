@@ -59,6 +59,15 @@ export class Indexed {
     return data.Gift.map(normalise);
   }
 
+  /** The gift row that created a drop (name, message, label, channel), once indexed. */
+  async giftByDrop(dropId: string): Promise<Gift | null> {
+    const data = await this.query<{ Gift: Record<string, unknown>[] }>(
+      `query ($dropId: String!) { Gift(where: { dropId: { _eq: $dropId } }, limit: 1) { ${GIFT_FIELDS} } }`,
+      { dropId: dropId.toLowerCase() },
+    );
+    return data.Gift[0] ? normalise(data.Gift[0]) : null;
+  }
+
   /** Total USDC base units a creator received from gifts at or after `sinceTs` (unix seconds). */
   async totalSince(creator: string, sinceTs: bigint): Promise<bigint> {
     const data = await this.query<{ Gift_aggregate: { aggregate: { sum: { amount: string | number | null } } } }>(

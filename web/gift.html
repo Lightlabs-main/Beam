@@ -56,6 +56,20 @@
 
         <!-- 2b. Compose -->
         <form class="card" id="compose" hidden style="margin-top: 14px" novalidate>
+          <label>Who is it for?</label>
+          <div class="amounts two" role="group" aria-label="Recipient">
+            <button type="button" data-for="creator" aria-pressed="true">The streamer</button>
+            <button type="button" data-for="chatter" aria-pressed="false">A chatter</button>
+          </div>
+          <div id="chatter-fields" hidden>
+            <label for="label">Their name in chat <span class="count" id="label-count"></span></label>
+            <input id="label" maxlength="32" placeholder="@Tunde" autocomplete="off" />
+            <p class="muted small">
+              You'll get a claim link to paste in chat. They open it, make a wallet with a passkey, and the money is
+              theirs. No wallet needed beforehand.
+            </p>
+          </div>
+
           <label>Amount</label>
           <div class="amounts" role="group" aria-label="Amount">
             <button type="button" data-amount="0.5" aria-pressed="false">$0.50</button>
@@ -81,6 +95,18 @@
           <h2 id="sent-title">It's on stream</h2>
           <p class="muted" id="sent-detail"></p>
           <p class="small"><a id="sent-link" target="_blank" rel="noopener">See it on the Monad explorer ↗</a></p>
+          <div id="claim-share" hidden style="text-align: left">
+            <label for="claim-url">Claim link for <span id="claim-for"></span></label>
+            <div class="addr">
+              <input id="claim-url" readonly />
+              <button class="inline" id="claim-copy" type="button">Copy</button>
+            </div>
+            <button class="ghost" id="claim-native-share" type="button" hidden>Share…</button>
+            <p class="muted small">
+              Paste it in chat for them. Whoever opens it first can claim it, so send it only to them. It's saved on this
+              device in <a href="/wallet">your wallet</a>; if nobody claims it within 7 days, you can take it back.
+            </p>
+          </div>
           <button id="again" type="button">Send another</button>
         </section>
       </section>

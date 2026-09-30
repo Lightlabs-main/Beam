@@ -87,6 +87,24 @@ export function signInCard(nameInput?: HTMLInputElement): Promise<Wallet> {
   });
 }
 
+/** A chatter gift or bomb this device sent; kept so the sender never loses the claim link. */
+export type SentDrop = { dropId: string; link: string; label: string; amount: string; channel: string; createdAt: number };
+const SENT_KEY = "beam.sentDrops";
+
+export function sentDrops(): SentDrop[] {
+  try {
+    return JSON.parse(localStorage.getItem(SENT_KEY) ?? "[]") as SentDrop[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveSentDrop(drop: SentDrop) {
+  try {
+    localStorage.setItem(SENT_KEY, JSON.stringify([drop, ...sentDrops().filter((x) => x.dropId !== drop.dropId)].slice(0, 50)));
+  } catch {}
+}
+
 export function randomSalt(): `0x${string}` {
   const b = crypto.getRandomValues(new Uint8Array(32));
   return `0x${[...b].map((x) => x.toString(16).padStart(2, "0")).join("")}`;

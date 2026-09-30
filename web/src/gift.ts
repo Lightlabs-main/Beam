@@ -1,6 +1,20 @@
 // Gift page (/g/<creator>): passkey wallet → amount + message → gasless gift through the relayer.
-import { MAX_MESSAGE_BYTES, MAX_NAME_BYTES, parseUsdc, signGift, usdLabel } from "@beam/shared";
-import { $, balances, copyText, loadConfig, randomSalt, short, signInCard } from "./pagekit.js";
+import {
+  DropKind,
+  MAX_LABEL_BYTES,
+  MAX_MESSAGE_BYTES,
+  MAX_NAME_BYTES,
+  claimLink,
+  makeClaimKeys,
+  parseUsdc,
+  signDrop,
+  signGift,
+  usdLabel,
+} from "@beam/shared";
+import { $, balances, copyText, loadConfig, randomSalt, saveSentDrop, short, signInCard } from "./pagekit.js";
+
+/** Unclaimed chatter gifts can be taken back after this (the sender can also take them back any time). */
+const CHATTER_TTL_SECONDS = 7n * 24n * 60n * 60n;
 
 const NAME_KEY = "beam.name";
 const creator = location.pathname.split("/")[2] ?? "";
@@ -63,24 +77,41 @@ async function main() {
 
   // ---- compose
   let amount = parseUsdc("1");
-  const amountButtons = [...document.querySelectorAll<HTMLButtonElement>(".amounts button")];
+  let forChatter = false;
+  const amountButtons = [...document.querySelectorAll<HTMLButtonElement>("button[data-amount]")];
+  const forButtons = [...document.querySelectorAll<HTMLButtonElement>("button[data-for]")];
   const custom = $<HTMLInputElement>("custom");
   const nameInput = $<HTMLInputElement>("name");
+  const labelInput = $<HTMLInputElement>("label");
   const message = $<HTMLTextAreaElement>("message");
   const send = $<HTMLButtonElement>("send");
 
   function updateSend() {
     $("name-count").textContent = `${bytes(nameInput.value)}/${MAX_NAME_BYTES}`;
+    $("label-count").textContent = `${bytes(labelInput.value)}/${MAX_LABEL_BYTES}`;
     $("message-count").textContent = `${bytes(message.value)}/${MAX_MESSAGE_BYTES}`;
     let problem: string | null = null;
     if (amount < minUnits) problem = `The smallest gift is ${usdLabel(minUnits)}.`;
     else if (amount > balance) problem = `You have ${usdLabel(balance)}. Add money or pick a smaller amount.`;
     else if (bytes(nameInput.value) > MAX_NAME_BYTES) problem = "That name is too long.";
     else if (bytes(message.value) > MAX_MESSAGE_BYTES) problem = "That message is too long.";
+    else if (forChatter && !labelInput.value.trim()) problem = "Add the chatter's name so the stream knows who it's for.";
+    else if (forChatter && bytes(labelInput.value) > MAX_LABEL_BYTES) problem = "That chatter name is too long.";
     send.disabled = problem !== null;
-    send.textContent = `Send ${usdLabel(amount)}`;
-    showError("send-error", balance >= minUnits ? problem : null);
+    send.textContent = forChatter ? `Gift ${usdLabel(amount)} to ${labelInput.value.trim() || "a chatter"}` : `Send ${usdLabel(amount)}`;
+    showError("send-error", balance >= minUnits && (!forChatter || labelInput.value.trim()) ? problem : null);
   }
+
+  for (const b of forButtons) {
+    b.onclick = () => {
+      forChatter = b.dataset.for === "chatter";
+      for (const x of forButtons) x.setAttribute("aria-pressed", String(x === b));
+      $("chatter-fields").hidden = !forChatter;
+      if (forChatter) labelInput.focus();
+      updateSend();
+    };
+  }
+  labelInput.oninput = updateSend;
 
   for (const b of amountButtons) {
     b.onclick = () => {
@@ -112,25 +143,53 @@ async function main() {
     send.innerHTML = `<span class="spinner"></span>Sending…`;
     showError("send-error", null);
     const started = performance.now();
+    const validBefore = BigInt(Math.floor(Date.now() / 1000) + 600);
     try {
-      const auth = await signGift(d, wallet.account, {
-        to: creator as `0x${string}`,
-        meta,
-        value: amount,
-        validBefore: BigInt(Math.floor(Date.now() / 1000) + 600),
-        salt: randomSalt(),
-      });
-      const res = await fetch("/api/relay/gift", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ to: creator, meta, auth }, (_, v) => (typeof v === "bigint" ? v.toString() : v)),
-      });
-      const body = (await res.json()) as { hash?: string; explorerUrl?: string; error?: string };
-      if (!res.ok || !body.hash) throw new Error(friendly(body.error ?? `send failed (${res.status})`));
+      let body: { hash?: string; explorerUrl?: string; error?: string; dropId?: string };
+      let claimUrl: string | null = null;
+      const label = labelInput.value.trim();
+      if (!forChatter) {
+        const auth = await signGift(d, wallet.account, { to: creator as `0x${string}`, meta, value: amount, validBefore, salt: randomSalt() });
+        body = await post("/api/relay/gift", { to: creator, meta, auth });
+      } else {
+        // The claim key is born and stays in this browser; only its hash (the slot root) goes on-chain.
+        const { keys, root } = makeClaimKeys(1);
+        const params = {
+          channel: creator as `0x${string}`,
+          slots: 1,
+          slotRoot: root,
+          expiry: BigInt(Math.floor(Date.now() / 1000)) + CHATTER_TTL_SECONDS,
+          recipientLabel: label,
+        };
+        const { dropId, auth } = await signDrop(d, wallet.account, {
+          kind: DropKind.Chatter,
+          params,
+          meta,
+          value: amount,
+          validBefore,
+          salt: randomSalt(),
+        });
+        claimUrl = claimLink(location.origin, dropId, 0, keys[0]!, []);
+        // Saved before sending: if this tab closes, the sender still has the link.
+        saveSentDrop({ dropId, link: claimUrl, label, amount: amount.toString(), channel: creator, createdAt: Date.now() });
+        body = await post("/api/relay/drop", { kind: "chatter", params, meta, auth });
+      }
+      if (!body.hash) throw new Error(friendly(body.error ?? "send failed"));
       const ms = Math.round(performance.now() - started);
-      $("sent-title").textContent = `${usdLabel(amount)} is on stream`;
-      $("sent-detail").textContent = `Settled on Monad in ${(ms / 1000).toFixed(1)} s. The creator already has it.`;
+      $("sent-title").textContent = forChatter ? `${usdLabel(amount)} for ${label} is on stream` : `${usdLabel(amount)} is on stream`;
+      $("sent-detail").textContent = forChatter
+        ? `Settled on Monad in ${(ms / 1000).toFixed(1)} s. The money waits safely until ${label} claims it.`
+        : `Settled on Monad in ${(ms / 1000).toFixed(1)} s. The creator already has it.`;
       $<HTMLAnchorElement>("sent-link").href = body.explorerUrl!;
+      $("claim-share").hidden = !claimUrl;
+      if (claimUrl) {
+        $("claim-for").textContent = label;
+        $<HTMLInputElement>("claim-url").value = claimUrl;
+        $("claim-copy").onclick = () => copyText(claimUrl!, $("claim-copy"));
+        const share = $("claim-native-share");
+        share.hidden = !("share" in navigator);
+        share.onclick = () => void navigator.share?.({ title: "A gift for you on Beam", text: `${label}, you got a gift!`, url: claimUrl! }).catch(() => {});
+      }
       $("compose").hidden = true;
       $("sent").hidden = false;
       message.value = "";
@@ -148,6 +207,17 @@ async function main() {
   };
 
   await refresh();
+}
+
+async function post(path: string, payload: unknown): Promise<{ hash?: string; explorerUrl?: string; error?: string; dropId?: string }> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload, (_, v) => (typeof v === "bigint" ? v.toString() : v)),
+  });
+  const body = (await res.json()) as { hash?: string; explorerUrl?: string; error?: string; dropId?: string };
+  if (!res.ok) throw new Error(friendly(body.error ?? `send failed (${res.status})`));
+  return body;
 }
 
 function friendly(error: string): string {
