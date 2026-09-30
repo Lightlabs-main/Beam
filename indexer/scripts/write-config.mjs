@@ -15,6 +15,18 @@ for (const name of ["BeamGifts", "BeamClaims"]) {
   }
 }
 
+// Event signatures come from the ABI the contracts were compiled to (packages/shared/abi, written
+// by `pnpm abi`), so the indexer can never drift from the deployed events.
+const abiDir = join(here, "..", "..", "packages", "shared", "abi");
+function eventSignature(contract, eventName) {
+  const abi = JSON.parse(readFileSync(join(abiDir, `${contract}.json`), "utf8"));
+  const ev = abi.find((x) => x.type === "event" && x.name === eventName);
+  if (!ev) throw new Error(`${contract} ABI has no ${eventName} event`);
+  const params = ev.inputs.map((i) => `${i.type}${i.indexed ? " indexed" : ""} ${i.name}`).join(", ");
+  return `${eventName}(${params})`;
+}
+const events = (contract, names) => names.map((n) => `      - event: "${eventSignature(contract, n)}"`).join("\n");
+
 // Optional: follow the chain head through an RPC in realtime (HyperSync still does historical
 // sync). Measured 2026-09-30: every public Monad testnet RPC caps eth_getLogs at 100 blocks and
 // throttles bursts, and Envio fell back to HyperSync within ~4s each time. Set
@@ -48,14 +60,10 @@ field_selection:
 contracts:
   - name: BeamGifts
     events:
-      - event: "GiftSent(address indexed from, address indexed to, uint256 amount, string displayName, string message, uint16 actionCode, uint64 ts)"
-      - event: "GiftSplit(address indexed from, address[] recipients, uint256[] amounts, uint64 ts)"
+${events("BeamGifts", ["GiftSent", "GiftSplit"])}
   - name: BeamClaims
     events:
-      - event: "ChatterGiftSent(bytes32 indexed dropId, address indexed from, uint256 amount, string recipientLabel, string displayName, string message, uint16 actionCode, uint64 expiry, uint64 ts)"
-      - event: "BombSent(address indexed from, uint256 pool, uint32 slots, bytes32 indexed bombId, string displayName, string message, uint16 actionCode, uint64 expiry, uint64 ts)"
-      - event: "Claimed(bytes32 indexed dropId, uint32 slot, address indexed recipient, uint256 amount, uint64 ts)"
-      - event: "Reclaimed(bytes32 indexed dropId, address indexed sender, uint256 amount, bool expired, uint64 ts)"
+${events("BeamClaims", ["ChatterGiftSent", "BombSent", "Claimed", "Reclaimed"])}
 
 chains:
   - id: ${d.chainId}

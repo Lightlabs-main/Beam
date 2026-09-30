@@ -12,6 +12,7 @@ indexer.onEvent({ contract: "BeamClaims", event: "ChatterGiftSent" }, async ({ e
     seq: seqOf(event.block.number, event.logIndex),
     kind: "Chatter",
     from: p.from,
+    channel: p.channel,
     to: undefined,
     amount: BigInt(p.amount),
     displayName: p.displayName,
@@ -29,6 +30,7 @@ indexer.onEvent({ contract: "BeamClaims", event: "ChatterGiftSent" }, async ({ e
   context.Drop.set({
     id: p.dropId,
     kind: "Chatter",
+    channel: p.channel,
     sender: p.from,
     amount: BigInt(p.amount),
     slots: 1,
@@ -49,6 +51,7 @@ indexer.onEvent({ contract: "BeamClaims", event: "BombSent" }, async ({ event, c
     seq: seqOf(event.block.number, event.logIndex),
     kind: "Bomb",
     from: p.from,
+    channel: p.channel,
     to: undefined,
     amount: BigInt(p.pool),
     displayName: p.displayName,
@@ -66,6 +69,7 @@ indexer.onEvent({ contract: "BeamClaims", event: "BombSent" }, async ({ event, c
   context.Drop.set({
     id: p.bombId,
     kind: "Bomb",
+    channel: p.channel,
     sender: p.from,
     amount: BigInt(p.pool),
     slots: Number(p.slots),

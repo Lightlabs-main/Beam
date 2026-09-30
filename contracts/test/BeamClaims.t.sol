@@ -9,6 +9,7 @@ contract BeamClaimsTest is BeamTestBase {
     BeamClaims internal claims;
     address internal sender;
     uint256 internal senderPk;
+    address internal creator = makeAddr("creator");
 
     uint256[] internal slotKeys;
     bytes32[] internal leaves;
@@ -27,7 +28,11 @@ contract BeamClaimsTest is BeamTestBase {
         returns (BeamClaims.DropParams memory p)
     {
         p = BeamClaims.DropParams({
-            slots: slots, slotRoot: root, expiry: uint64(block.timestamp + 1 days), recipientLabel: label
+            channel: creator,
+            slots: slots,
+            slotRoot: root,
+            expiry: uint64(block.timestamp + 1 days),
+            recipientLabel: label
         });
     }
 
@@ -132,9 +137,9 @@ contract BeamClaimsTest is BeamTestBase {
         Authorization memory a = _auth(BeamClaims.Kind.Chatter, p, m, 5e6, bytes32("c"));
         bytes32 expectedId = claims.dropNonce(sender, BeamClaims.Kind.Chatter, p, m, bytes32("c"));
 
-        vm.expectEmit(true, true, false, true, address(claims));
+        vm.expectEmit(true, true, true, true, address(claims));
         emit BeamClaims.ChatterGiftSent(
-            expectedId, sender, 5e6, "@Tunde", "JUDGE", "for you", 3, p.expiry, uint64(block.timestamp)
+            expectedId, sender, creator, 5e6, "@Tunde", "JUDGE", "for you", 3, p.expiry, uint64(block.timestamp)
         );
         vm.prank(relayer);
         bytes32 id = claims.giftChatter(p, m, a);
@@ -320,6 +325,45 @@ contract BeamClaimsTest is BeamTestBase {
         vm.expectRevert(USDC_INVALID_SIGNATURE);
         claims.giftChatter(p, m, a);
         assertEq(usdc.balanceOf(sender), 100e6);
+    }
+
+    /// A relayer cannot move a drop onto another stream: the channel is bound by the sender.
+    function test_create_rejectsTamperedChannel() public {
+        bytes32 root = _makeSlots(1, "chatter");
+        BeamClaims.DropParams memory p = _params(1, root, "@Tunde");
+        GiftMeta memory m = _meta("JUDGE", "for you", 3);
+        Authorization memory a = _auth(BeamClaims.Kind.Chatter, p, m, 5e6, bytes32("c"));
+
+        p.channel = makeAddr("other-streamer");
+        vm.prank(relayer);
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
+        claims.giftChatter(p, m, a);
+        assertEq(usdc.balanceOf(sender), 100e6);
+    }
+
+    function test_create_requiresChannel() public {
+        bytes32 root = _makeSlots(1, "chatter");
+        BeamClaims.DropParams memory p = _params(1, root, "@Tunde");
+        p.channel = address(0);
+        GiftMeta memory m = _meta("JUDGE", "for you", 3);
+        Authorization memory a = _auth(BeamClaims.Kind.Chatter, p, m, 5e6, bytes32("c"));
+        vm.expectRevert(BeamClaims.ZeroAddress.selector);
+        claims.giftChatter(p, m, a);
+    }
+
+    /// The overlay routes a bomb to the stream it names.
+    function test_bomb_announcesChannel() public {
+        bytes32 root = _makeSlots(3, "bomb");
+        BeamClaims.DropParams memory p = _params(3, root, "");
+        GiftMeta memory m = _meta("JUDGE", "BOOM", 9);
+        Authorization memory a = _auth(BeamClaims.Kind.Bomb, p, m, 9e6, bytes32("b"));
+        bytes32 expectedId = claims.dropNonce(sender, BeamClaims.Kind.Bomb, p, m, bytes32("b"));
+        vm.expectEmit(true, true, true, true, address(claims));
+        emit BeamClaims.BombSent(
+            sender, creator, 9e6, 3, expectedId, "JUDGE", "BOOM", 9, p.expiry, uint64(block.timestamp)
+        );
+        vm.prank(relayer);
+        claims.bomb(p, m, a);
     }
 
     function test_create_rejectsTamperedLabelOrExpiry() public {

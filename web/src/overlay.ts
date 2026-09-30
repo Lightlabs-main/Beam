@@ -7,6 +7,7 @@ type Gift = {
   id: string;
   kind: "Direct" | "Split" | "Chatter" | "Bomb";
   from: string;
+  channel: string;
   to: string | null;
   amount: string;
   displayName: string;
@@ -41,6 +42,23 @@ function dollars(units: bigint): string {
 
 const nameOf = (g: Gift) => g.displayName.trim() || `${g.from.slice(0, 6)}…${g.from.slice(-4)}`;
 
+/** What the gifter did, as shown under their name. */
+function verbOf(g: Gift): string {
+  switch (g.kind) {
+    case "Chatter":
+      return `gifted ${g.recipientLabel?.trim() || "a chatter"} 🎁`;
+    case "Bomb":
+      return `dropped a Beam Bomb for ${g.slots ?? "?"} chatters 💣`;
+    case "Split":
+      return "gifted & shared it 🎉";
+    default:
+      return "gifted 🎉";
+  }
+}
+
+/** Only money paid to this creator counts toward their goal; drops go to chatters. */
+const paysCreator = (g: Gift) => g.to !== null && g.to.toLowerCase() === creator.toLowerCase();
+
 // ---------------------------------------------------------------- alert queue
 
 const queue: Gift[] = [];
@@ -57,7 +75,7 @@ async function playNext() {
   const el = $("alert");
   $("alert-amount").textContent = dollars(BigInt(gift.amount));
   $("alert-name").textContent = nameOf(gift);
-  $("alert-verb").textContent = gift.kind === "Split" ? "gifted & shared it 🎉" : "gifted 🎉";
+  $("alert-verb").textContent = verbOf(gift);
   $("alert-message").textContent = gift.message;
   el.classList.remove("leaving");
   el.hidden = false;
@@ -91,7 +109,8 @@ function recentRow(g: Gift): HTMLLIElement {
   const li = document.createElement("li");
   const who = document.createElement("span");
   who.className = "who";
-  who.textContent = nameOf(g);
+  who.textContent =
+    g.kind === "Chatter" ? `${nameOf(g)} → ${g.recipientLabel?.trim() || "chatter"}` : g.kind === "Bomb" ? `${nameOf(g)} 💣` : nameOf(g);
   const amt = document.createElement("span");
   amt.className = "amt";
   amt.textContent = dollars(BigInt(g.amount));
@@ -161,7 +180,7 @@ function connect(attempt = 0) {
     const gift = msg.gift;
     enqueueAlert(gift);
     pushRecent(gift);
-    if (goalTarget !== null) {
+    if (goalTarget !== null && paysCreator(gift)) {
       goalNow += BigInt(gift.amount);
       renderGoal();
     }

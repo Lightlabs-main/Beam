@@ -51,6 +51,6 @@ const res = await fetch(`${base}/api/relay/gift`, {
 const t2 = Date.now();
 const body = await res.json();
 
-console.log(JSON.stringify({ status: res.status, ...body }, null, 2));
+console.log(JSON.stringify({ http: res.status, ...body }, null, 2));
 console.log(`signed in ${t1 - t0}ms · relayed and included in ${t2 - t1}ms · submitted at ${t1}, receipt at ${t2}`);
 if (!res.ok) process.exit(1);

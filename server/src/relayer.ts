@@ -47,7 +47,7 @@ export class RelayError extends Error {
   }
 }
 
-export type RelayResult = { hash: Hex; blockNumber: bigint; status: "success" | "reverted"; explorerUrl: string };
+export type RelayResult = { hash: Hex; blockNumber: bigint; status: "success"; explorerUrl: string };
 
 export type RelayerOptions = {
   d: Deployment;
@@ -106,6 +106,11 @@ export class Relayer {
 
     const hash = await this.wallet.writeContract(request);
     const receipt = await this.publicClient.waitForTransactionReceipt({ hash, timeout: 30_000 });
+    // Simulation passed, so this is rare (e.g. the viewer spent the balance in between), but a
+    // reverted gift must never be reported as sent.
+    if (receipt.status !== "success") {
+      throw new RelayError(502, `gift transaction ${hash} reverted on chain; no USDC moved`);
+    }
     return { hash, blockNumber: receipt.blockNumber, status: receipt.status, explorerUrl: txUrl(this.o.d, hash) };
   }
 

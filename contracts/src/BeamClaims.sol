@@ -15,6 +15,8 @@ import {SigLib, MerkleLib} from "./lib/SigLib.sol";
 /// seen in a mempool cannot be redirected: changing the recipient invalidates the signature.
 /// Claims are relayer-submitted, so recipients need no MON either.
 ///
+/// - Every drop names its `channel`: the creator on whose stream it happened, so the overlay
+///   and chat can show it there. The sender signs it like every other parameter.
 /// - Gift-a-chatter is a drop with one slot.
 /// - A Beam Bomb is a drop with N slots, one claim per recipient account.
 /// - The sender can reclaim the unclaimed balance at any time; after expiry anyone can push
@@ -60,6 +62,7 @@ contract BeamClaims {
 
     /// @notice Parameters of a drop, all committed to by the sender's EIP-3009 nonce.
     struct DropParams {
+        address channel; // the creator whose stream this drop happened on
         uint32 slots;
         bytes32 slotRoot;
         uint64 expiry;
@@ -72,6 +75,7 @@ contract BeamClaims {
     event ChatterGiftSent(
         bytes32 indexed dropId,
         address indexed from,
+        address indexed channel,
         uint256 amount,
         string recipientLabel,
         string displayName,
@@ -82,6 +86,7 @@ contract BeamClaims {
     );
     event BombSent(
         address indexed from,
+        address indexed channel,
         uint256 pool,
         uint32 slots,
         bytes32 indexed bombId,
@@ -132,6 +137,7 @@ contract BeamClaims {
                 address(this),
                 from,
                 kind,
+                p.channel,
                 p.slots,
                 p.slotRoot,
                 p.expiry,
@@ -183,6 +189,7 @@ contract BeamClaims {
         emit ChatterGiftSent(
             dropId,
             auth.from,
+            p.channel,
             auth.value,
             p.recipientLabel,
             meta.displayName,
@@ -202,6 +209,7 @@ contract BeamClaims {
         bombId = _create(Kind.Bomb, p, meta, auth);
         emit BombSent(
             auth.from,
+            p.channel,
             auth.value,
             p.slots,
             bombId,
@@ -218,6 +226,7 @@ contract BeamClaims {
         returns (bytes32 dropId)
     {
         meta.check();
+        if (p.channel == address(0)) revert ZeroAddress();
         if (bytes(p.recipientLabel).length > MAX_LABEL_BYTES) revert LabelTooLong();
         if (p.slots > MAX_SLOTS) revert BadSlots();
         if (p.expiry < block.timestamp + MIN_TTL || p.expiry > block.timestamp + MAX_TTL) revert BadExpiry();

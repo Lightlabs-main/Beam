@@ -32,6 +32,11 @@ export function createApp({ config, relayer, indexed, gifts }: Deps) {
 
   // Fixed one-minute window per client IP for relay requests: sponsorship is bounded.
   const windows = new Map<string, { start: number; count: number }>();
+  // Forget finished windows so memory stays bounded by the last minute of visitors.
+  setInterval(() => {
+    const cutoff = Date.now() - 60_000;
+    for (const [ip, w] of windows) if (w.start < cutoff) windows.delete(ip);
+  }, 60_000).unref();
   const allowRelay = (ip: string) => {
     const now = Date.now();
     const w = windows.get(ip);
@@ -169,13 +174,13 @@ export function createApp({ config, relayer, indexed, gifts }: Deps) {
 
   gifts.on("gift", (gift: Gift) => {
     const receivedAt = Date.now();
-    const targets = gift.to ? byCreator.get(gift.to.toLowerCase()) : undefined;
+    const targets = byCreator.get(gift.channel.toLowerCase());
     const lag = receivedAt - Number(gift.ts) * 1000;
     // A (re)syncing indexer streams old gifts too. Alerts are for gifts happening now; history
     // reaches overlays through the recent/total queries they run on connect.
     const backfill = lag > LIVE_WINDOW_MS;
     console.log(
-      `[feed] ${gift.kind} ${gift.txHash} ${formatUsdc(BigInt(gift.amount))} USDC -> ${gift.to ?? gift.recipientLabel ?? "drop"} ` +
+      `[feed] ${gift.kind} ${gift.txHash} ${formatUsdc(BigInt(gift.amount))} USDC -> ${gift.to ?? gift.recipientLabel ?? "drop"} on ${gift.channel} ` +
         `(block ts + ${lag}ms, ${backfill ? "backfill, not alerted" : `${targets?.size ?? 0} overlays`})`,
     );
     if (!targets || backfill) return;

@@ -8,9 +8,9 @@
     "block": 66952339
   },
   "BeamClaims": {
-    "address": "0x6C336c1c86Cf187564878332d38CA973be377f70",
-    "tx": "0x5d02b8a5cff20ce8f6f9ce522fba792e603c8c3c150f997b88c8f985c32185ff",
-    "block": 66952364
+    "address": "0x5f7C6f905f013002b51970D7D0c5b28Ead5d585C",
+    "tx": "0x7383459b3a4ded024212663d419f26508c481676cf261823f326e80ff3e65ef1",
+    "block": 67039400
   },
   "commit": "b02e2a0",
   "explorer": "https://testnet.monadscan.com"

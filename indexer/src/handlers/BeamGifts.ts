@@ -11,6 +11,7 @@ indexer.onEvent({ contract: "BeamGifts", event: "GiftSent" }, async ({ event, co
     seq: seqOf(event.block.number, event.logIndex),
     kind: "Direct",
     from: p.from,
+    channel: p.to,
     to: p.to,
     amount: BigInt(p.amount),
     displayName: p.displayName,

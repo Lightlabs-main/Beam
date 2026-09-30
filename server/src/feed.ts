@@ -8,6 +8,9 @@ export type Gift = {
   seq: string;
   kind: "Direct" | "Split" | "Chatter" | "Bomb";
   from: string;
+  /** The creator whose stream this happened on; overlays subscribe by it. */
+  channel: string;
+  /** The creator paid, for Direct/Split; null for claimable drops. */
   to: string | null;
   amount: string;
   displayName: string;
@@ -21,7 +24,7 @@ export type Gift = {
   txHash: string;
 };
 
-const GIFT_FIELDS = `id seq kind from to amount displayName message actionCode dropId recipientLabel slots ts blockNumber txHash`;
+const GIFT_FIELDS = `id seq kind from channel to amount displayName message actionCode dropId recipientLabel slots ts blockNumber txHash`;
 
 // Hasura returns numeric columns as numbers or strings depending on its settings; normalise.
 const normalise = (g: Record<string, unknown>): Gift =>
@@ -45,12 +48,13 @@ export class Indexed {
     return body.data;
   }
 
+  /** Everything that happened on a creator's stream: gifts to them, chatter gifts and bombs. */
   async recentGifts(creator: string, limit: number): Promise<Gift[]> {
     const data = await this.query<{ Gift: Record<string, unknown>[] }>(
-      `query ($to: String!, $limit: Int!) {
-        Gift(where: { to: { _eq: $to } }, order_by: { seq: desc }, limit: $limit) { ${GIFT_FIELDS} }
+      `query ($channel: String!, $limit: Int!) {
+        Gift(where: { channel: { _eq: $channel } }, order_by: { seq: desc }, limit: $limit) { ${GIFT_FIELDS} }
       }`,
-      { to: creator.toLowerCase(), limit },
+      { channel: creator.toLowerCase(), limit },
     );
     return data.Gift.map(normalise);
   }

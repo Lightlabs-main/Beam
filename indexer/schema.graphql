@@ -12,6 +12,9 @@ type Gift {
   seq: BigInt! @index
   kind: GiftKind!
   from: String! @index
+  # The creator whose stream this gift happened on: the payee for Direct/Split, the signed
+  # channel for drops. Overlays and chat route by this.
+  channel: String! @index
   # Creator paid (Direct, Split primary). Null for claimable drops, which have no payee yet.
   to: String @index
   amount: BigInt!
@@ -42,6 +45,7 @@ type SplitPayout {
 type Drop {
   id: ID!
   kind: GiftKind!
+  channel: String! @index
   sender: String! @index
   amount: BigInt!
   slots: Int!
