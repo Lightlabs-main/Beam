@@ -48,6 +48,13 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
     return ++w.count <= config.relayPerMinute;
   };
 
+  // Drop-creating gifts seen live, so a claim link opened seconds later can show who sent it.
+  const recentDrops = new Map<string, Gift>();
+  const rememberDrop = (g: Gift) => {
+    recentDrops.set(g.dropId!.toLowerCase(), g);
+    if (recentDrops.size > 1000) recentDrops.delete(recentDrops.keys().next().value!);
+  };
+
   let indexerStatus = "connecting";
   gifts.on("status", (s) => (indexerStatus = s));
   let lastFeedError = "";
@@ -178,8 +185,9 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
         const [drop, slotClaimed, gift] = await Promise.all([
           relayer.drop(dropId),
           Number.isInteger(slot) && slot >= 0 && slot < 100 ? relayer.isSlotClaimed(dropId, slot) : Promise.resolve(false),
-          // Indexed details are a nicety: the claim works from chain state alone.
-          indexed.giftByDrop(dropId).catch(() => null),
+          // Sender's name and message: from the chain push if recent (the indexer can lag), else
+          // the indexer. A nicety either way: the claim itself works from chain state alone.
+          recentDrops.get(dropId.toLowerCase()) ?? indexed.giftByDrop(dropId).catch(() => null),
         ]);
         if (!drop.exists) return json(res, 404, { error: "no gift with this link exists" });
         return json(res, 200, {
@@ -246,6 +254,7 @@ export function createApp({ config, relayer, indexed, gifts, chain }: Deps) {
 
   const onGift = (source: "chain" | "indexer") => (gift: Gift) => {
     const receivedAt = Date.now();
+    if (gift.dropId) rememberDrop(gift);
     if (delivered.has(gift.id)) {
       console.log(`[${source}] ${gift.txHash} +${receivedAt - delivered.get(gift.id)!}ms after first delivery (duplicate)`);
       return;
