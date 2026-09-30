@@ -28,13 +28,18 @@ Last updated 2026-09-30.
 - **Gift-a-chatter on stream**: drops carry a sender-signed channel; a real chatter gift showed on the
   creator's overlay and was claimed by a fresh account holding no MON (BeamClaims redeployed).
 
+- **Viewer pages** (live): landing page with OBS link builder; gift page `/g/<creator>` (Mera passkey
+  wallet, honest funding, gift the streamer or a chatter); claim page `/c/<dropId>`; wallet page
+  `/wallet` (balances, recovery phrase, take back unclaimed gifts, forget-device recovery test).
+- **Gift-a-chatter via the public API**: drop, claim into a fresh wallet (0 MON), double-claim refused,
+  take-back, all live (see verification).
+
 ## Next
 
-1. Mera passkey gate (§3.2): create an account on a real phone, receive and send USDC gaslessly,
-   recover on a second device. Record it.
-2. Gift page `/g/<creator>`: Mera passkey → amount → sign → relay. The overlay QR already points here.
-3. Live testnet runs of splits, reclaims and bombs; relayer endpoints for drops and claims.
-4. `script/verify.ts` wired as `pnpm verify` and in CI.
+1. Mera passkey gate (§3.2) on a real phone: create, receive, send, recover. Pages are live; needs the
+   user's phone. Record it.
+2. Beam Bomb and splits in the product (UI + live runs); mainnet deployment and relayer wallet.
+3. `script/verify.ts` wired as `pnpm verify` and in CI.
 
 ## Blocked / waiting on
 

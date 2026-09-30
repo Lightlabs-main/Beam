@@ -64,6 +64,14 @@ async function makeDrop(label: string, message: string, amount: string) {
   return { dropId, link: claimLink(base, dropId, 0, keys[0]!, []), hash: r.hash, ms: Date.now() - t0 };
 }
 
+// CREATE_ONLY=1: make one unclaimed chatter gift and print its full claim link (for page checks).
+if (process.env.CREATE_ONLY === "1") {
+  const x = await makeDrop(process.env.LABEL ?? "@Ada", process.env.MESSAGE ?? "welcome to the stream", process.env.AMOUNT ?? "0.5");
+  const state = await (await fetch(`${base}/api/drops/${x.dropId}?slot=0`)).json();
+  console.log(JSON.stringify({ hash: x.hash, link: x.link, from: (state as { from: unknown }).from }));
+  process.exit(0);
+}
+
 // 1 + 2: gift a chatter, then claim into a brand-new wallet.
 const before = await balances(sender.address);
 const a = await makeDrop("@Ada", "welcome to the stream", "1");

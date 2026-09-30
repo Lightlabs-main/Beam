@@ -145,6 +145,22 @@ Run with `server/scripts/chatter-gift.ts`, 2026-09-30, with the overlay open on 
 Indexer rebuilt from an empty database after the schema change: all five earlier gifts came back
 (total $4.50) and the server logged each as "backfill, not alerted", confirming no replay on stream.
 
+## Gift-a-chatter through the public API (testnet)
+
+`server/scripts/claim-flow.ts` against https://beamstreams.xyz, 2026-09-30, calling the API exactly
+as the gift and claim pages do (claim key made client-side, secret only in the URL fragment):
+
+| Step | Result |
+|---|---|
+| `/api/relay/drop` from the sender's signature | 643 ms, `0x10eee61916dd57f43e8f331cbf8f852499886ab4840dc9dab1a7b96a56c3e9f6` |
+| `/api/relay/claim` into a brand-new wallet | 933 ms, `0x24c0e010d25018ba0a83cfaeed8bb8338c2a1c0cf9f2e6fbaf78472aea8e1662`; chatter holds $1 USDC, 0 MON |
+| Same link claimed again | refused: `DropClosed` |
+| `/api/relay/reclaim` of an unclaimed $0.50 | returned to sender: `0x2155d88cc81300d08541a31db4bb2b6895f6885735a07fd6a8e20d7b906322bd` |
+
+Sender balance $8.50 → $7.50 ($1 claimed, $0.50 returned), MON 0 throughout. Found and fixed: a link
+opened seconds after sending showed no sender name (indexer lag); the server now answers from the
+chain push.
+
 ## Not yet verified
 
 - Split gifts, claims, reclaims and bombs against the live deployment (covered by fork tests only).
