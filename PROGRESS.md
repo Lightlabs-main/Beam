@@ -36,7 +36,9 @@ Last updated 2026-09-30.
 
 ## Blocked / waiting on
 
-- **Dedicated Monad RPC** (optional): would cut up to ~1 s of indexing latency (see verification).
+- **Realtime indexing source** (decision needed): the free Envio token is rate-limited, so alerts
+  stall for up to ~50 s every minute. Fix with a dedicated RPC key (e.g. Alchemy/QuickNode free tier)
+  for realtime, or Envio Starter ($70/month). See verification.
 - **Domain** with an A record to 16.61.50.207 (HTTPS is required for passkeys). Mera binds wallets
   to the domain, so it must be the one Beam keeps; the server behind it can change freely.
 - **Ramp** production key application (§3.3): not started by the user yet as far as recorded here.

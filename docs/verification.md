@@ -90,6 +90,21 @@ dedicated RPC endpoint (`ENVIO_REALTIME_RPC`).
 Bug found and fixed here: a (re)syncing indexer streams old gifts, which would have replayed old
 alerts on stream. The server now only broadcasts gifts from the last 60 s.
 
+### Finding: free HyperSync rate limit stalls realtime alerts
+
+Later probes (same stack) took 53 s, 24 s, then 1.2 s. Sampling Envio's progress against the chain
+head every second for 3 minutes (18:40–18:43 UTC) showed a one-minute cycle: fetching stops for
+~50 s (up to 182 blocks behind), then catches up at ~:01 past the minute. HyperSync itself was never
+more than 4 blocks behind the head over 2 minutes. Envio logs the cause:
+
+    WARN: HyperSync source is rate-limited - not critical, the indexer will retry in 54s.
+    For higher limits upgrade your plan at https://envio.dev/app/api-tokens.
+
+The free token is "fair-use" rate limited; Starter ($70/month) allows 100 requests/minute
+(envio.dev/pricing/hypersync, 2026-09-30). The alternative is a dedicated RPC for realtime
+(`ENVIO_REALTIME_RPC`) so HyperSync is only used for historical sync. The earlier ~1 s results
+were measured inside the unthrottled part of the cycle and are not representative until this is fixed.
+
 ## Gift-a-chatter on stream (testnet)
 
 BeamClaims redeployed with a sender-signed `channel` on every drop:
