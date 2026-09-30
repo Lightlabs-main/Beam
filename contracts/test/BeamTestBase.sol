@@ -55,8 +55,7 @@ abstract contract BeamTestBase is Test {
         a.validAfter = 0;
         a.validBefore = block.timestamp + 1 hours;
         a.salt = salt;
-        bytes32 structHash =
-            keccak256(abi.encode(typehash, a.from, to, value, a.validAfter, a.validBefore, nonce));
+        bytes32 structHash = keccak256(abi.encode(typehash, a.from, to, value, a.validAfter, a.validBefore, nonce));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", usdc.DOMAIN_SEPARATOR(), structHash));
         (a.v, a.r, a.s) = vm.sign(pk, digest);
     }

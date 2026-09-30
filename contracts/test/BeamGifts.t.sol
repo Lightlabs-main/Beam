@@ -81,7 +81,7 @@ contract BeamGiftsTest is BeamTestBase {
         GiftMeta memory m = _meta("JUDGE", "gg", 1);
         Authorization memory a = _giftAuth(creator, m, 1e6, bytes32("s1"));
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         gifts.giftCreator(creator, _meta("JUDGE", "rugged", 1), a);
         assertEq(usdc.balanceOf(creator), 0);
     }
@@ -91,7 +91,7 @@ contract BeamGiftsTest is BeamTestBase {
         GiftMeta memory m = _meta("JUDGE", "gg", 1);
         Authorization memory a = _giftAuth(creator, m, 1e6, bytes32("s1"));
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         gifts.giftCreator(creator, _meta("JUDGE", "gg", 7), a);
     }
 
@@ -100,7 +100,7 @@ contract BeamGiftsTest is BeamTestBase {
         GiftMeta memory m = _meta("JUDGE", "gg", 1);
         Authorization memory a = _giftAuth(creator, m, 1e6, bytes32("s1"));
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         gifts.giftCreator(relayer, m, a);
         assertEq(usdc.balanceOf(relayer), 0);
     }
@@ -111,7 +111,7 @@ contract BeamGiftsTest is BeamTestBase {
         Authorization memory a = _giftAuth(creator, m, 1e6, bytes32("s1"));
         a.value = 50e6;
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         gifts.giftCreator(creator, m, a);
     }
 
@@ -120,7 +120,7 @@ contract BeamGiftsTest is BeamTestBase {
         Authorization memory a = _giftAuth(creator, m, 1e6, bytes32("s1"));
         vm.warp(a.validBefore + 1);
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_AUTH_EXPIRED);
         gifts.giftCreator(creator, m, a);
     }
 
@@ -128,7 +128,7 @@ contract BeamGiftsTest is BeamTestBase {
         GiftMeta memory m = _meta("JUDGE", "gg", 1);
         Authorization memory a = _giftAuth(creator, m, 101e6, bytes32("s1"));
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INSUFFICIENT);
         gifts.giftCreator(creator, m, a);
     }
 
@@ -310,12 +310,12 @@ contract BeamGiftsTest is BeamTestBase {
         Authorization memory a = _splitAuth(rs, bps, m, 1e6, bytes32("s"));
         address[] memory swapped = _two(creator, relayer);
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         gifts.giftWithSplit(swapped, bps, m, a);
 
         uint16[] memory skewed = _bps2(1000, 9000);
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         gifts.giftWithSplit(rs, skewed, m, a);
     }
 
@@ -327,9 +327,9 @@ contract BeamGiftsTest is BeamTestBase {
         Authorization memory a = _splitAuth(rs, bps, m, 1e6, bytes32("s"));
         vm.prank(relayer);
         gifts.giftWithSplit(rs, bps, m, a);
-        vm.expectRevert();
+        vm.expectRevert(USDC_AUTH_USED);
         gifts.giftWithSplit(rs, bps, m, a);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         gifts.giftCreator(creator, m, a);
     }
 
@@ -341,7 +341,7 @@ contract BeamGiftsTest is BeamTestBase {
         Authorization memory a = _splitAuth(rs, bps, m, 1e6, bytes32("s"));
         bytes32 nonce = gifts.splitNonce(viewer, rs, bps, m, a.salt);
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_NOT_PAYEE);
         usdc.receiveWithAuthorization(
             viewer, address(gifts), a.value, a.validAfter, a.validBefore, nonce, a.v, a.r, a.s
         );

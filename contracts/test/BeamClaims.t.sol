@@ -26,7 +26,9 @@ contract BeamClaimsTest is BeamTestBase {
         view
         returns (BeamClaims.DropParams memory p)
     {
-        p = BeamClaims.DropParams({slots: slots, slotRoot: root, expiry: uint64(block.timestamp + 1 days), recipientLabel: label});
+        p = BeamClaims.DropParams({
+            slots: slots, slotRoot: root, expiry: uint64(block.timestamp + 1 days), recipientLabel: label
+        });
     }
 
     function _auth(BeamClaims.Kind kind, BeamClaims.DropParams memory p, GiftMeta memory m, uint256 value, bytes32 salt)
@@ -315,7 +317,7 @@ contract BeamClaimsTest is BeamTestBase {
 
         p.slotRoot = claims.slotLeaf(0, relayer);
         vm.prank(relayer);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         claims.giftChatter(p, m, a);
         assertEq(usdc.balanceOf(sender), 100e6);
     }
@@ -327,12 +329,12 @@ contract BeamClaimsTest is BeamTestBase {
         Authorization memory a = _auth(BeamClaims.Kind.Chatter, p, m, 5e6, bytes32("c"));
 
         BeamClaims.DropParams memory q = _params(1, root, "@Mallory");
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         claims.giftChatter(q, m, a);
 
         q = _params(1, root, "@Tunde");
         q.expiry = uint64(block.timestamp + 20 days);
-        vm.expectRevert();
+        vm.expectRevert(USDC_INVALID_SIGNATURE);
         claims.giftChatter(q, m, a);
     }
 

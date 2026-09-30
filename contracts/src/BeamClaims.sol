@@ -230,15 +230,7 @@ contract BeamClaims {
 
         uint256 balanceBefore = usdc.balanceOf(address(this));
         usdc.receiveWithAuthorization(
-            auth.from,
-            address(this),
-            auth.value,
-            auth.validAfter,
-            auth.validBefore,
-            dropId,
-            auth.v,
-            auth.r,
-            auth.s
+            auth.from, address(this), auth.value, auth.validAfter, auth.validBefore, dropId, auth.v, auth.r, auth.s
         );
         if (usdc.balanceOf(address(this)) != balanceBefore + auth.value) revert TransferFailed();
 

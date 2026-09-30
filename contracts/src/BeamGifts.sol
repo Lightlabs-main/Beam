@@ -105,7 +105,9 @@ contract BeamGifts {
             auth.s
         );
 
-        emit GiftSent(auth.from, to, auth.value, meta.displayName, meta.message, meta.actionCode, uint64(block.timestamp));
+        emit GiftSent(
+            auth.from, to, auth.value, meta.displayName, meta.message, meta.actionCode, uint64(block.timestamp)
+        );
     }
 
     /// @notice Split gift: one authorization, every recipient paid their share in this transaction.
