@@ -64,7 +64,7 @@ services:
       HASURA_SERVICE_HOST: hasura
       HASURA_SERVICE_PORT: 8080
       TUI_OFF: "true"
-      LOG_LEVEL: info
+      LOG_LEVEL: ${INDEXER_LOG_LEVEL:-info}
       LOG_STRATEGY: console-pretty
 
   server:
