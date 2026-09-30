@@ -21,6 +21,9 @@ body {
   width: 1920px;
   height: 1080px;
   overflow: hidden;
+  /* Lay out on the 1920×1080 canvas, not the window: a browser source of another size
+     crops the overlay instead of stacking the alert onto the panels. */
+  position: relative;
   background: transparent;
   font-family: "Inter Variable", system-ui, sans-serif;
   color: var(--ink);

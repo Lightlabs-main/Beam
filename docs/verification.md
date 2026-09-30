@@ -90,6 +90,26 @@ dedicated RPC endpoint (`ENVIO_REALTIME_RPC`).
 Bug found and fixed here: a (re)syncing indexer streams old gifts, which would have replayed old
 alerts on stream. The server now only broadcasts gifts from the last 60 s.
 
+## Gift-a-chatter on stream (testnet)
+
+BeamClaims redeployed with a sender-signed `channel` on every drop:
+`0x5f7C6f905f013002b51970D7D0c5b28Ead5d585C` (tx `0x7383459b3a4ded024212663d419f26508c481676cf261823f326e80ff3e65ef1`).
+The previous BeamClaims (`0x6C33…7f70`) never held a drop. 50 fork tests pass on mainnet and testnet,
+including a relayer swapping the channel (rejected by USDC's signature check).
+
+Run with `server/scripts/chatter-gift.ts`, 2026-09-30, with the overlay open on the creator's channel:
+
+- Drop created by the relayer from the viewer's signature: `0x9d5f774e47b3d163593d9d2b4b49e0525a4ff96175413e9567d232a3ed35e739`.
+- The overlay showed "$1 · JUDGE gifted @Tunde 🎁 · welcome to the stream"; the server routed it to
+  the channel's overlay 817 ms after the block timestamp. The goal bar correctly did not move
+  (the money went to the chatter, not the creator).
+- A brand-new account claimed it through the relayer:
+  `0xba4568d339dc4f339521dc0ff06d96ad9e6144021def6863cd9c13b161f44dcd`. The claimant ends with
+  1 USDC and 0 MON.
+
+Indexer rebuilt from an empty database after the schema change: all five earlier gifts came back
+(total $4.50) and the server logged each as "backfill, not alerted", confirming no replay on stream.
+
 ## Not yet verified
 
 - Split gifts, claims, reclaims and bombs against the live deployment (covered by fork tests only).

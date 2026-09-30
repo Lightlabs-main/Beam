@@ -23,16 +23,16 @@ Last updated 2026-09-30.
   running on AWS Lightsail (London, static IP 16.61.50.207). All services up.
 - **§3.4 passed**: a real gift reached the overlay through Envio over WebSocket; 0.8–1.8 s from
   relay request to overlay (details in `docs/verification.md`).
+- **Gift-a-chatter on stream**: drops carry a sender-signed channel; a real chatter gift showed on the
+  creator's overlay and was claimed by a fresh account holding no MON (BeamClaims redeployed).
 
 ## Next
 
 1. Mera passkey gate (§3.2): create an account on a real phone, receive and send USDC gaslessly,
    recover on a second device. Record it.
 2. Gift page `/g/<creator>`: Mera passkey → amount → sign → relay. The overlay QR already points here.
-3. Drops need a committed `channel` (whose stream) so chatter gifts and bombs can be routed to the
-   right overlay: contract change + redeploy on testnet.
-4. Live testnet runs of splits, claims, reclaims and bombs.
-5. `script/verify.ts` wired as `pnpm verify` and in CI.
+3. Live testnet runs of splits, reclaims and bombs; relayer endpoints for drops and claims.
+4. `script/verify.ts` wired as `pnpm verify` and in CI.
 
 ## Blocked / waiting on
 
@@ -44,7 +44,5 @@ Last updated 2026-09-30.
 
 ## Known gaps
 
-- `ChatterGiftSent` and `BombSent` do not say whose stream they belong to, so the overlay only shows
-  direct and split gifts today (see Next 4).
 - Relayer rate limiting is in-memory per process; fine for one server.
 - Free space on the development machine's C: drive keeps dropping; watch it.
