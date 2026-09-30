@@ -20,7 +20,8 @@ Last updated 2026-09-30.
 - **Overlay** (`web/overlay.html`): alert + confetti, goal bar, recent gifts, QR. Driven only by
   indexed events.
 - **Deployment** (`deploy/`): Docker Compose stack (Postgres, Hasura, Envio, server, Caddy HTTPS),
-  running on AWS Lightsail (London, static IP 16.61.50.207). All services up.
+  running on AWS Lightsail (London, static IP 16.61.50.207). Public at https://beamstreams.xyz
+  (Let's Encrypt; www redirects). Postgres, Hasura and the server port are not reachable publicly.
 - **§3.4 passed**: real gifts reach the overlay over WebSocket in 0.26–0.58 s from the relay request.
   Alerts come from the chain's own log push; Envio (rate-limited on the free token) is the backup
   source and serves history, totals and the recent list (details in `docs/verification.md`).
@@ -37,8 +38,6 @@ Last updated 2026-09-30.
 
 ## Blocked / waiting on
 
-- **Domain** with an A record to 16.61.50.207 (HTTPS is required for passkeys). Mera binds wallets
-  to the domain, so it must be the one Beam keeps; the server behind it can change freely.
 - **Ramp** production key application (§3.3): not started by the user yet as far as recorded here.
 - **Real phone** for the Mera passkey test.
 
