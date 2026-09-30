@@ -5,5 +5,10 @@ cd /opt/beam
 git pull --ff-only
 cd deploy
 test -f .env || { echo "missing deploy/.env (see deploy/.env.example)"; exit 1; }
-docker compose up -d --build
+# Caddy (public HTTPS) only runs once a domain is configured.
+if grep -qE '^DOMAIN=.+' .env; then
+  docker compose --profile https up -d --build
+else
+  docker compose up -d --build
+fi
 docker compose ps

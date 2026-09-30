@@ -48,7 +48,8 @@ services:
       hasura:
         condition: service_healthy
     environment:
-      ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:?set ENVIO_API_TOKEN}
+      # HyperSync answers without a token today, but Envio requires one for continued access.
+      ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:-}
       ENVIO_PG_HOST: postgres
       ENVIO_PG_PORT: 5432
       ENVIO_PG_USER: ${ENVIO_PG_USER:-postgres}
@@ -85,8 +86,13 @@ services:
       RPC_URL: ${RPC_URL:-}
       PORT: 8787
       TRUST_PROXY: "1"
+    # Loopback only: reachable through an SSH tunnel for checks, never from the internet.
+    ports:
+      - "127.0.0.1:8787:8787"
 
   caddy:
+    # Started once DOMAIN is set in .env (deploy/up.sh adds --profile https).
+    profiles: ["https"]
     image: caddy:2.10
     restart: always
     depends_on:
@@ -96,7 +102,7 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      DOMAIN: ${DOMAIN:?set DOMAIN}
+      DOMAIN: ${DOMAIN:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
