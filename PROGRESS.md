@@ -38,6 +38,10 @@ Last updated 2026-09-30.
 - **Passkey gate (§3.2)**: create, receive and send verified on a real phone; recover pending.
 - **Beam Studio** `/studio`: camera behind the live overlay, recorded in the browser (no OBS needed for the video).
 - **Claims on stream**: the overlay shows when a chatter claims or a bomb share is grabbed.
+- **Earnings page** `/earnings?creator=`: balance, total received, latest gifts with the creator's share.
+  Fixed: goal totals counted whole split gifts as the creator's.
+- **Watch page** `/watch/<creator>`: the creator's Twitch/YouTube/Kick player, platform chat where
+  embeddable, and gifting on one shareable link (stream link is part of the signed settings).
 - **Creator dashboard** `/creator`: OBS link, `!gift` command for Nightbot/StreamElements, signed
   settings (name, goal, split shares). **Instant splits** live: one gift paid three wallets in one tx.
 - **`pnpm verify` + CI** (GitHub Actions): typecheck, live-testnet tests, verify, indexer codegen,
