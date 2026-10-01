@@ -21,9 +21,15 @@ export function giftsFromLogs(d: Deployment, logs: GiftLog[]): Gift[] {
   const claimLogs = parseEventLogs({ abi: beamClaimsAbi, logs: logs.filter((l) => l.address.toLowerCase() === d.beamClaims.toLowerCase()) });
 
   // giftWithSplit emits GiftSent immediately followed by GiftSplit in the same transaction.
-  const splitGiftIds = new Set(
-    giftLogs.filter((l) => l.eventName === "GiftSplit").map((l) => `${d.chain.id}-${l.transactionHash.toLowerCase()}-${l.logIndex - 1}`),
-  );
+  const splits = new Map<string, { recipient: string; amount: string }[]>();
+  for (const l of giftLogs) {
+    if (l.eventName !== "GiftSplit") continue;
+    const a = (l as unknown as { args: { recipients: readonly string[]; amounts: readonly bigint[] } }).args;
+    splits.set(
+      `${d.chain.id}-${l.transactionHash.toLowerCase()}-${l.logIndex - 1}`,
+      a.recipients.map((r, i) => ({ recipient: r.toLowerCase(), amount: a.amounts[i]!.toString() })),
+    );
+  }
 
   const out: Gift[] = [];
   for (const l of giftLogs) {
@@ -32,7 +38,8 @@ export function giftsFromLogs(d: Deployment, logs: GiftLog[]): Gift[] {
     const g = base(l);
     out.push({
       ...g,
-      kind: splitGiftIds.has(g.id) ? "Split" : "Direct",
+      kind: splits.has(g.id) ? "Split" : "Direct",
+      ...(splits.has(g.id) ? { payouts: splits.get(g.id) } : {}),
       from: a.from.toLowerCase(),
       channel: a.to.toLowerCase(),
       to: a.to.toLowerCase(),

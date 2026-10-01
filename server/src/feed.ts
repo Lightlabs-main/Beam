@@ -22,6 +22,8 @@ export type Gift = {
   ts: string;
   blockNumber: number;
   txHash: string;
+  /** Split gifts from the chain push: who got what, in the same transaction. */
+  payouts?: { recipient: string; amount: string }[];
 };
 
 const GIFT_FIELDS = `id seq kind from channel to amount displayName message actionCode dropId recipientLabel slots ts blockNumber txHash`;
@@ -68,16 +70,48 @@ export class Indexed {
     return data.Gift[0] ? normalise(data.Gift[0]) : null;
   }
 
-  /** Total USDC base units a creator received from gifts at or after `sinceTs` (unix seconds). */
+  /**
+   * USDC base units a creator actually received at or after `sinceTs` (unix seconds): direct gifts
+   * in full, and only their own share of split gifts (as the primary or as someone else's share).
+   */
   async totalSince(creator: string, sinceTs: bigint): Promise<bigint> {
-    const data = await this.query<{ Gift_aggregate: { aggregate: { sum: { amount: string | number | null } } } }>(
-      `query ($to: String!, $since: numeric!) {
-        Gift_aggregate(where: { to: { _eq: $to }, ts: { _gte: $since } }) { aggregate { sum { amount } } }
+    type Agg = { aggregate: { count: number; sum: { amount: string | number | null } } };
+    const data = await this.query<{ direct: Agg; shares: Agg }>(
+      `query ($c: String!, $since: numeric!) {
+        direct: Gift_aggregate(where: { to: { _eq: $c }, kind: { _eq: "Direct" }, ts: { _gte: $since } }) { aggregate { count sum { amount } } }
+        shares: SplitPayout_aggregate(where: { recipient: { _eq: $c }, ts: { _gte: $since } }) { aggregate { count sum { amount } } }
       }`,
-      { to: creator.toLowerCase(), since: sinceTs.toString() },
+      { c: creator.toLowerCase(), since: sinceTs.toString() },
     );
-    const sum = data.Gift_aggregate.aggregate.sum.amount;
-    return sum === null ? 0n : BigInt(String(sum));
+    const n = (a: Agg) => (a.aggregate.sum.amount === null ? 0n : BigInt(String(a.aggregate.sum.amount)));
+    return n(data.direct) + n(data.shares);
+  }
+
+  /** A creator's earnings: what they received in total, and their latest gifts with their share of each. */
+  async earnings(creator: string, limit: number) {
+    type Agg = { aggregate: { count: number; sum: { amount: string | number | null } } };
+    const c = creator.toLowerCase();
+    const data = await this.query<{
+      direct: Agg;
+      shares: Agg;
+      gifts: Record<string, unknown>[];
+      payouts: { giftId: string; amount: string | number }[];
+    }>(
+      `query ($c: String!, $limit: Int!) {
+        direct: Gift_aggregate(where: { to: { _eq: $c }, kind: { _eq: "Direct" } }) { aggregate { count sum { amount } } }
+        shares: SplitPayout_aggregate(where: { recipient: { _eq: $c } }) { aggregate { count sum { amount } } }
+        gifts: Gift(where: { to: { _eq: $c } }, order_by: { seq: desc }, limit: $limit) { ${GIFT_FIELDS} }
+        payouts: SplitPayout(where: { recipient: { _eq: $c } }, order_by: { ts: desc }, limit: $limit) { giftId amount }
+      }`,
+      { c, limit },
+    );
+    const n = (a: Agg) => (a.aggregate.sum.amount === null ? 0n : BigInt(String(a.aggregate.sum.amount)));
+    const share = new Map(data.payouts.map((p) => [p.giftId, String(p.amount)]));
+    return {
+      total: n(data.direct) + n(data.shares),
+      gifts: data.direct.aggregate.count + data.shares.aggregate.count,
+      recent: data.gifts.map(normalise).map((g) => ({ ...g, received: g.kind === "Split" ? (share.get(g.id) ?? null) : g.amount })),
+    };
   }
 
   async latestSeq(): Promise<string> {

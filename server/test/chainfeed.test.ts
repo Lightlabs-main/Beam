@@ -55,6 +55,9 @@ describe("split gifts from the chain push", () => {
     assert.equal(gifts[0]!.kind, "Split");
     assert.equal(gifts[0]!.amount, "1000000");
     assert.equal(gifts[0]!.message, "for the whole crew");
+    // Each wallet's exact share rides along, so the overlay counts only the creator's part.
+    assert.deepEqual(gifts[0]!.payouts?.map((p) => p.amount), ["850000", "100000", "50000"]);
+    assert.equal(gifts[0]!.payouts?.[0]?.recipient, "0xf5446059ba06fe5381c6cbd21294a43e19b31159");
   });
 });
 

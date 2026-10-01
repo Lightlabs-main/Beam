@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0a14" />
+    <title>Earnings · Beam</title>
+    <link rel="stylesheet" href="/src/app.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/">Beam</a>
+        <span class="net" id="net" hidden></span>
+      </header>
+
+      <h1>Earnings</h1>
+      <p class="sub" id="who"></p>
+      <p class="error" id="page-error" hidden></p>
+
+      <section id="setup" class="card" hidden>
+        <label for="creator">Creator wallet address</label>
+        <div class="addr">
+          <input id="creator" placeholder="0x…" autocomplete="off" spellcheck="false" />
+          <button class="inline" id="go" type="button">Open</button>
+        </div>
+      </section>
+
+      <section id="view" hidden>
+        <div class="chip">
+          <div>
+            <div class="muted small">In your wallet now</div>
+            <div class="bal" id="balance">…</div>
+          </div>
+          <div style="text-align: right">
+            <div class="muted small">Received from gifts</div>
+            <div class="bal" id="total">…</div>
+            <div class="muted small" id="count"></div>
+          </div>
+        </div>
+        <p class="muted small">
+          Gifts land in your wallet the moment they're sent; nothing is held for you. Updates every 10 seconds.
+          <a id="explorer" target="_blank" rel="noopener">All transactions on the Monad explorer ↗</a>
+        </p>
+
+        <section class="card">
+          <h2>Latest gifts</h2>
+          <ul id="gifts" style="list-style: none; padding: 0; margin: 0"></ul>
+          <p class="muted small" id="empty" hidden>No gifts yet. Share your gift link or put the overlay on stream.</p>
+        </section>
+      </section>
+    </div>
+    <script type="module" src="/src/earnings.ts"></script>
+  </body>
+</html>

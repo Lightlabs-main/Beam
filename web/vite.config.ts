@@ -14,6 +14,7 @@ export default defineConfig({
         claim: resolve(import.meta.dirname, "claim.html"),
         creator: resolve(import.meta.dirname, "creator.html"),
         studio: resolve(import.meta.dirname, "studio.html"),
+        earnings: resolve(import.meta.dirname, "earnings.html"),
       },
     },
   },

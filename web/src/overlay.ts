@@ -14,6 +14,7 @@ type Gift = {
   message: string;
   actionCode: number;
   recipientLabel: string | null;
+  payouts?: { recipient: string; amount: string }[];
   slots: number | null;
   txHash: string;
 };
@@ -51,7 +52,19 @@ function verbOf(g: Gift): string {
 }
 
 /** Only money paid to this creator counts toward their goal; drops go to chatters. */
-const paysCreator = (g: Gift) => g.to !== null && g.to.toLowerCase() === creator.toLowerCase();
+/**
+ * What this creator received from a gift: all of a direct gift, only their share of a split, and
+ * nothing from drops (that money goes to chatters). null = a split whose shares aren't known yet.
+ */
+function receivedBy(g: Gift): bigint | null {
+  const me = creator.toLowerCase();
+  if (g.kind === "Direct") return g.to?.toLowerCase() === me ? BigInt(g.amount) : 0n;
+  if (g.kind === "Split") {
+    if (!g.payouts) return null;
+    return g.payouts.filter((p) => p.recipient === me).reduce((a, p) => a + BigInt(p.amount), 0n);
+  }
+  return 0n;
+}
 
 // ---------------------------------------------------------------- alert queue
 
@@ -214,9 +227,13 @@ function connect(attempt = 0) {
     const gift = msg.gift;
     enqueueAlert(gift);
     pushRecent(gift);
-    if (goalTarget !== null && paysCreator(gift)) {
-      goalNow += BigInt(gift.amount);
-      renderGoal();
+    if (goalTarget !== null) {
+      const got = receivedBy(gift);
+      if (got === null) setTimeout(() => void sync().catch(() => {}), 5000); // shares from the indexer
+      else if (got > 0n) {
+        goalNow += got;
+        renderGoal();
+      }
     }
   };
   ws.onclose = () => {

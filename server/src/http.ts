@@ -120,6 +120,8 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
               ? "/creator.html"
               : pathname === "/studio"
                 ? "/studio.html"
+                : pathname === "/earnings"
+                  ? "/earnings.html"
             : /^\/g\/0x[0-9a-fA-F]{40}\/?$/.test(pathname)
               ? "/gift.html"
               : /^\/c\/0x[0-9a-fA-F]{64}\/?$/.test(pathname)
@@ -213,6 +215,12 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
           expired: Number(drop.expiry) * 1000 <= Date.now(),
           from: gift ? { name: gift.displayName, message: gift.message, recipientLabel: gift.recipientLabel, channel: gift.channel } : null,
         });
+      }
+      const earningsRoute = /^\/api\/creators\/(0x[0-9a-fA-F]{40})\/earnings$/.exec(path);
+      if (req.method === "GET" && earningsRoute) {
+        const creator = earningsRoute[1] as `0x${string}`;
+        const [earnings, wallet] = await Promise.all([indexed.earnings(creator, 30), relayer.balances(creator)]);
+        return json(res, 200, { ...earnings, balance: wallet.usdc, explorer: `${d.explorer}/address/${creator}` });
       }
       const accountRoute = /^\/api\/accounts\/(0x[0-9a-fA-F]{40})$/.exec(path);
       if (req.method === "GET" && accountRoute) {

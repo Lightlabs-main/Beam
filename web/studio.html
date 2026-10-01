@@ -34,6 +34,7 @@
         <button id="rec" class="primary" type="button">● Record</button>
         <button id="full" type="button">Full screen</button>
         <button id="hide" type="button">Hide panel (H)</button>
+        <a id="earnings" target="_blank" rel="noopener"><button type="button">Earnings ↗</button></a>
       </div>
       <p class="hint" id="hint">
         Scan the QR with your phone and gift: the alert fires here from the real on-chain gift. To record, press
@@ -42,6 +43,8 @@
       <p class="error" id="error" hidden></p>
     </section>
 
+    <!-- Shown only while the panel is hidden (never while recording). -->
+    <button class="show-controls" id="show-controls" type="button">Show controls</button>
     <script type="module" src="/src/studio.ts"></script>
   </body>
 </html>

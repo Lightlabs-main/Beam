@@ -144,3 +144,16 @@ input[type="checkbox"] {
 body.hide-controls .controls {
   display: none;
 }
+
+.show-controls {
+  display: none;
+  position: fixed;
+  right: 16px;
+  top: 16px;
+  font-size: 13px;
+  padding: 8px 12px;
+  opacity: 0.85;
+}
+body.hide-controls:not(.recording) .show-controls {
+  display: block;
+}

@@ -18,6 +18,7 @@ new ResizeObserver(fit).observe(stage);
 const creator = new URLSearchParams(location.search).get("creator") ?? "";
 if (isAddress(creator)) {
   overlay.src = `/overlay?creator=${creator}`;
+  $<HTMLAnchorElement>("earnings").href = `/earnings?creator=${creator}`;
   $("buttons").hidden = false;
 } else {
   $("setup").hidden = false;
@@ -53,6 +54,7 @@ $("cam").onclick = async () => {
 
 $("full").onclick = () => void document.documentElement.requestFullscreen?.().catch(() => {});
 $("hide").onclick = () => document.body.classList.add("hide-controls");
+$("show-controls").onclick = () => document.body.classList.remove("hide-controls");
 
 // ---- recording: capture this tab (camera + overlay + confetti) and, optionally, the microphone
 let recorder: MediaRecorder | null = null;
