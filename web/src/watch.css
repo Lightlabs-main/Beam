@@ -1,0 +1,184 @@
+@import "@fontsource-variable/inter";
+
+:root {
+  --bg: #0b0a14;
+  --panel: #15131f;
+  --edge: rgba(255, 255, 255, 0.1);
+  --ink: #f4f3fa;
+  --soft: rgba(244, 243, 250, 0.72);
+  --accent: #7c5cff;
+  --accent-2: #22d3ee;
+  color-scheme: dark;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter Variable", system-ui, sans-serif;
+}
+a {
+  color: var(--accent-2);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--edge);
+}
+.brand {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.who {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.live {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--soft);
+  margin-left: 6px;
+}
+.net {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  color: var(--soft);
+  white-space: nowrap;
+}
+.error {
+  color: #ff7a8a;
+  padding: 0 16px;
+}
+
+/* Phone: video, then tabs switching between gift and chat. */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+.player {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+.player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.offline {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 16px;
+  color: var(--soft);
+  background: radial-gradient(600px 300px at 70% 20%, #1d1a35, #0b0a14);
+}
+.external {
+  margin: 8px 16px;
+  font-size: 14px;
+  color: var(--soft);
+}
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--edge);
+}
+.tabs button {
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--soft);
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 12px;
+  cursor: pointer;
+}
+.tabs button[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+.panel iframe {
+  width: 100%;
+  border: 0;
+  display: block;
+  background: var(--bg);
+}
+.gift iframe {
+  height: 760px;
+}
+.chat iframe {
+  height: 520px;
+}
+.nochat {
+  padding: 16px;
+  color: var(--soft);
+}
+.panel[hidden] {
+  display: none;
+}
+
+/* Desktop: video and chat on the left, gifting always visible on the right. */
+@media (min-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) 420px;
+    grid-template-areas:
+      "video gift"
+      "chat gift";
+    height: calc(100vh - 53px);
+  }
+  .video {
+    grid-area: video;
+    padding: 16px 16px 0;
+  }
+  .tabs {
+    display: none;
+  }
+  .panel.gift {
+    grid-area: gift;
+    border-left: 1px solid var(--edge);
+    display: block !important;
+  }
+  .panel.chat {
+    grid-area: chat;
+    display: block !important;
+    padding: 0 16px 16px;
+    min-height: 0;
+  }
+  .gift iframe {
+    height: 100%;
+  }
+  .chat iframe {
+    height: 100%;
+    min-height: 200px;
+    border-radius: 12px;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}
+@media (min-width: 1000px) {
+  .panel[hidden] {
+    display: block !important;
+  }
+}

@@ -4,7 +4,9 @@ import {
   type CreatorConfig,
   MAX_SHARES,
   type SplitShare,
+  type StreamLink,
   checkCreatorConfig,
+  parseStreamLink,
   parseUsdc,
   signCreatorConfig,
   signGift,
@@ -36,6 +38,10 @@ async function main() {
   $("gift-copy").onclick = () => copyText(giftUrl, $("gift-copy"));
   $("nightbot-copy").onclick = () => copyText($<HTMLInputElement>("nightbot").value, $("nightbot-copy"));
   $("se-copy").onclick = () => copyText($<HTMLInputElement>("streamelements").value, $("se-copy"));
+  const watchUrl = `${origin}/watch/${me}`;
+  $<HTMLInputElement>("watch-url").value = watchUrl;
+  $<HTMLAnchorElement>("watch-open").href = watchUrl;
+  $("watch-copy").onclick = () => copyText(watchUrl, $("watch-copy"));
 
   // ---- test gift: a real, minimum-size gift to yourself; the overlay alert comes from its event.
   const testUnits = parseUsdc(cfg.minGiftUsdc);
@@ -115,6 +121,40 @@ async function main() {
   $("add-share").onclick = () => addShare();
   for (const s of current?.shares ?? []) addShare(s);
 
+  // ---- where you stream
+  const platform = $<HTMLSelectElement>("platform");
+  const channel = $<HTMLInputElement>("channel");
+  const STREAM_HELP: Record<StreamLink["platform"], [string, string, string]> = {
+    twitch: ["Twitch channel", "tunde_live", "Your channel name, or paste your twitch.tv link."],
+    kick: ["Kick channel", "tunde-live", "Your channel name, or paste your kick.com link."],
+    youtube: [
+      "YouTube channel ID or live video link",
+      "UC… or https://youtube.com/watch?v=…",
+      "Paste your live video link, or your channel ID (YouTube Studio → Settings → Channel → Advanced: starts with UC).",
+    ],
+  };
+  const showPlatform = () => {
+    const p = platform.value as StreamLink["platform"] | "";
+    $("channel-field").hidden = !p;
+    if (!p) return;
+    const [label, placeholder, help] = STREAM_HELP[p];
+    $("channel-label").textContent = label;
+    channel.placeholder = placeholder;
+    $("channel-help").textContent = help;
+  };
+  platform.value = current?.stream?.platform ?? "";
+  channel.value = current?.stream?.channel ?? "";
+  platform.onchange = showPlatform;
+  showPlatform();
+
+  function readStream(): StreamLink | null {
+    const p = platform.value as StreamLink["platform"] | "";
+    if (!p) return null;
+    const link = parseStreamLink(p, channel.value);
+    if (!link) throw new Error(`That doesn't look like a ${STREAM_HELP[p][0].toLowerCase()}.`);
+    return link;
+  }
+
   function readShares(): SplitShare[] {
     return [...sharesBox.querySelectorAll<HTMLElement>(".share")].map((row) => {
       const pct = (row.querySelector(".s-pct") as HTMLInputElement).value.trim();
@@ -156,6 +196,7 @@ async function main() {
             }
           : null,
         shares: readShares(),
+        stream: readStream(),
         updatedAt: Date.now(),
       };
       checkCreatorConfig(config);

@@ -13,6 +13,7 @@ const configBody = z.object({
     displayName: z.string(),
     goal: z.object({ usdc: z.string(), title: z.string(), since: z.number().int() }).nullable(),
     shares: z.array(z.object({ address, bps: z.number().int(), label: z.string() })).max(9),
+    stream: z.object({ platform: z.enum(["twitch", "youtube", "kick"]), channel: z.string().max(64) }).nullable().optional(),
     updatedAt: z.number().int(),
   }),
   signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/, "expected a 65-byte signature").transform((h) => h as Hex),

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0a14" />
+    <title>Watch · Beam</title>
+    <link rel="stylesheet" href="/src/watch.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/">Beam</a>
+      <div class="who"><span id="name"></span> <span class="live" id="platform-badge" hidden></span></div>
+      <span class="net" id="net" hidden></span>
+    </header>
+
+    <p class="error" id="page-error" hidden></p>
+
+    <main class="layout">
+      <section class="video">
+        <div class="player" id="player">
+          <div class="offline" id="offline" hidden>
+            <p id="offline-text"></p>
+          </div>
+        </div>
+        <p class="external" id="external" hidden></p>
+      </section>
+
+      <nav class="tabs" aria-label="Panels">
+        <button type="button" data-tab="gift" aria-selected="true">🎁 Send a gift</button>
+        <button type="button" data-tab="chat" aria-selected="false" id="chat-tab">💬 Chat</button>
+      </nav>
+
+      <aside class="panel gift" id="panel-gift">
+        <iframe id="gift" title="Send a gift" allow="publickey-credentials-create; publickey-credentials-get; clipboard-write"></iframe>
+      </aside>
+      <aside class="panel chat" id="panel-chat">
+        <iframe id="chat" title="Stream chat" hidden></iframe>
+        <p class="nochat" id="nochat" hidden></p>
+      </aside>
+    </main>
+    <script type="module" src="/src/watch.ts"></script>
+  </body>
+</html>

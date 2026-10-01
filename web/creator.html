@@ -32,6 +32,19 @@
 
       <section id="dash" hidden>
         <section class="card">
+          <h2>Share this with your viewers</h2>
+          <p class="muted small">
+            Your watch page: your live stream, your chat and gifting on one link. Add where you stream in your settings
+            below so the video shows there.
+          </p>
+          <div class="addr">
+            <input id="watch-url" readonly aria-label="Your watch page" />
+            <button class="inline" id="watch-copy" type="button">Copy</button>
+          </div>
+          <p class="small"><a id="watch-open" target="_blank" rel="noopener">Open my watch page ↗</a></p>
+        </section>
+
+        <section class="card">
           <h2>Your earnings</h2>
           <p class="muted small">Every gift lands in your wallet the moment it's sent.</p>
           <a id="earnings-link"><button type="button">See my earnings</button></a>
@@ -85,6 +98,21 @@
           <label for="goal-title">Goal title</label>
           <input id="goal-title" maxlength="40" placeholder="Stream goal" />
           <label style="font-weight: 400"><input type="checkbox" id="goal-reset" style="width: auto" /> Start counting the goal from now</label>
+
+          <h2 style="margin-top: 20px">Where you stream</h2>
+          <p class="muted small">Your watch page shows this stream and its chat next to the gift button.</p>
+          <label for="platform">Platform</label>
+          <select id="platform" style="width: 100%; font: inherit; font-size: 16px; color: inherit; background: #0e0c18; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 14px">
+            <option value="">Not set</option>
+            <option value="twitch">Twitch</option>
+            <option value="youtube">YouTube</option>
+            <option value="kick">Kick</option>
+          </select>
+          <div id="channel-field" hidden>
+            <label for="channel" id="channel-label">Channel</label>
+            <input id="channel" autocomplete="off" spellcheck="false" />
+            <p class="muted small" id="channel-help"></p>
+          </div>
 
           <h2 style="margin-top: 20px">Split every gift</h2>
           <p class="muted small">

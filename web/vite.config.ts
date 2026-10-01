@@ -15,6 +15,7 @@ export default defineConfig({
         creator: resolve(import.meta.dirname, "creator.html"),
         studio: resolve(import.meta.dirname, "studio.html"),
         earnings: resolve(import.meta.dirname, "earnings.html"),
+        watch: resolve(import.meta.dirname, "watch.html"),
       },
     },
   },

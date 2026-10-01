@@ -126,6 +126,8 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
               ? "/gift.html"
               : /^\/c\/0x[0-9a-fA-F]{64}\/?$/.test(pathname)
                 ? "/claim.html"
+                : /^\/watch\/0x[0-9a-fA-F]{40}\/?$/.test(pathname)
+                  ? "/watch.html"
                 : pathname;
     const file = normalize(join(config.webDir, route));
     if (!file.startsWith(normalize(config.webDir))) return notFound(req, res);

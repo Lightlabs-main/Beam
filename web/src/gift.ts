@@ -29,6 +29,7 @@ const BOMB_TTL_SECONDS = 24n * 60n * 60n;
 
 const NAME_KEY = "beam.name";
 const creator = location.pathname.split("/")[2] ?? "";
+if (new URLSearchParams(location.search).has("embed")) document.body.classList.add("embed");
 const bytes = (s: string) => new TextEncoder().encode(s).length;
 
 function showError(id: string, message: string | null) {
