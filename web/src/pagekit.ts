@@ -11,6 +11,8 @@ export type ServerConfig = {
   minGiftUsdc: string;
   /** Beam's Twitch chat bot, when this site has one connected. */
   twitchBot: { login: string } | null;
+  /** Streamers can prove their Twitch channel by logging in with Twitch. */
+  twitchConnect: boolean;
 };
 
 export const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;

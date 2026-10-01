@@ -68,6 +68,8 @@ async function main() {
   $("watch-copy").onclick = () => copyText(watchUrl, $("watch-copy"));
   $("nightbot-copy").onclick = () => copyText($<HTMLInputElement>("nightbot").value, $("nightbot-copy"));
 
+  let provenTwitch: string | null = null;
+
   // ---- signed settings: one source of truth, saved by patching it
   let saved: CreatorConfig | null = ((await (await fetch(`/api/creators/${me}/config`)).json()) as { config: CreatorConfig | null }).config;
 
@@ -99,7 +101,9 @@ async function main() {
     channel: () => !!saved?.displayName,
     obs: false,
     chat: () =>
-      saved?.stream?.platform === "twitch" && cfg.twitchBot ? !!saved.chatBot : local.get(`beam.chatDone.${me}`) === "1",
+      saved?.stream?.platform === "twitch" && cfg.twitchBot && provenTwitch === saved.stream.channel
+        ? !!saved.chatBot
+        : local.get(`beam.chatDone.${me}`) === "1",
     test: () => local.get(`beam.testDone.${me}`) === "1",
   };
 
@@ -118,7 +122,9 @@ async function main() {
     $("progress").textContent = count >= 6 ? "All set. Go live! 🎉" : `${count} of 6 done. Each step ticks itself when it's really done.`;
 
     // Step 4 adapts to where they stream and whether Beam's bot is running.
-    const twitchBot = saved?.stream?.platform === "twitch" && cfg.twitchBot;
+    const onTwitch = saved?.stream?.platform === "twitch";
+    const proven = onTwitch && provenTwitch === saved?.stream?.channel;
+    const twitchBot = onTwitch && cfg.twitchBot && proven;
     $("chat-bot").hidden = !twitchBot;
     $("chat-manual").hidden = !!twitchBot;
     if (twitchBot) {
@@ -126,19 +132,25 @@ async function main() {
       $("bot-mod").hidden = !saved?.chatBot;
       $("mod-cmd").textContent = `/mod ${cfg.twitchBot!.login}`;
     } else {
-      $("manual-why").textContent =
-        saved?.stream?.platform === "twitch"
-          ? "Beam's own Twitch bot isn't switched on for this site yet, so use Nightbot for now (free, 2 minutes):"
-          : "For YouTube and Kick, add Nightbot to your channel (free, 2 minutes):";
+      $("manual-why").textContent = !onTwitch
+        ? "For YouTube and Kick, add Nightbot to your channel (free, 2 minutes):"
+        : cfg.twitchBot && !proven
+          ? "Connect with Twitch in step 2 first, and this becomes one switch. Or use Nightbot (free, 2 minutes):"
+          : "Beam's own Twitch bot isn't switched on for this site yet, so use Nightbot for now (free, 2 minutes):";
     }
   }
 
   // ---- step 2: channel
   const platform = $<HTMLSelectElement>("platform");
   const channel = $<HTMLInputElement>("channel");
+  // Twitch channels are proven by logging in with Twitch (when this site has a Twitch app).
+  const twitchConnect = () => platform.value === "twitch" && cfg.twitchConnect;
   const showPlatform = () => {
     const p = platform.value as StreamLink["platform"] | "";
-    $("channel-field").hidden = !p;
+    $("twitch-connect").hidden = !twitchConnect();
+    $("channel-field").hidden = !p || twitchConnect();
+    $("twitch-status").textContent = provenTwitch ? `✓ Connected as ${provenTwitch}` : "";
+    $("twitch-button").textContent = provenTwitch ? "Connect a different Twitch account" : "Connect with Twitch";
     if (!p) return;
     const [label, placeholder, help] = STREAM_HELP[p];
     $("channel-label").textContent = label;
@@ -157,7 +169,8 @@ async function main() {
       const displayName = $<HTMLInputElement>("display").value.trim();
       if (!displayName) throw new Error("Add the name viewers see.");
       const p = platform.value as StreamLink["platform"] | "";
-      const stream = p ? parseStreamLink(p, channel.value) : null;
+      if (twitchConnect() && !provenTwitch) throw new Error("Connect with Twitch first.");
+      const stream = twitchConnect() ? { platform: "twitch" as const, channel: provenTwitch! } : p ? parseStreamLink(p, channel.value) : null;
       if (p && !stream) throw new Error(`That doesn't look like a ${STREAM_HELP[p][0]}.`);
       button.disabled = true;
       button.textContent = "Saving…";
@@ -172,6 +185,28 @@ async function main() {
       button.disabled = false;
     }
   };
+
+  $("twitch-button").onclick = () => {
+    // Keep the name typed so far; Twitch sends them straight back here.
+    local.set(`beam.pendingName.${me}`, $<HTMLInputElement>("display").value.trim());
+    location.href = `/twitch/link/start?creator=${me}`;
+  };
+  const status0 = (await (await fetch(`/api/creators/${me}/status`)).json()) as { twitch: string | null };
+  provenTwitch = status0.twitch;
+  showPlatform();
+  // Back from Twitch: save the proven channel straight away.
+  const back = new URLSearchParams(location.search).get("twitch");
+  if (back) {
+    history.replaceState(null, "", location.pathname);
+    if (back === "failed") {
+      $("channel-error").textContent = "Twitch didn't confirm the login. Try Connect with Twitch again.";
+      $("channel-error").hidden = false;
+    } else if (provenTwitch && saved?.stream?.channel !== provenTwitch) {
+      const pending = local.get(`beam.pendingName.${me}`);
+      if (pending) $<HTMLInputElement>("display").value = pending;
+      $("save-channel").click();
+    }
+  }
 
   // ---- step 3: OBS. Ticks when this creator's overlay is actually connected somewhere.
   $("obs-download").onclick = () => downloadObsSetup(overlayUrl);

@@ -108,6 +108,7 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
     });
 
   const oauthStates = new Map<string, number>();
+  const linkStates = new Map<string, { creator: string; expires: number }>();
   const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
   const page = (res: ServerResponse, status: number, title: string, body: string) => {
     res.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
@@ -203,6 +204,29 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
         await bot.start();
         return page(res, 200, "Beam bot connected", `Beam's chat bot is now ${login} on Twitch. Creators switch it on from /creator.`);
       }
+      // A streamer proves they own their Twitch channel: Twitch login → channel paired with their wallet.
+      if (req.method === "GET" && path === "/twitch/link/start") {
+        const creator = url.searchParams.get("creator") ?? "";
+        if (!bot) return page(res, 503, "Twitch isn't set up here yet", "Type your channel name on the setup page instead.");
+        if (!isAddress(creator)) return page(res, 400, "Missing wallet", "Start from beamstreams.xyz/creator.");
+        const state = randomBytes(16).toString("hex");
+        linkStates.set(state, { creator, expires: Date.now() + 10 * 60_000 });
+        res.writeHead(302, { location: bot.links.authorizeUrl(state), "cache-control": "no-store" });
+        return res.end();
+      }
+      if (req.method === "GET" && path === "/twitch/link/callback") {
+        const pending = linkStates.get(url.searchParams.get("state") ?? "");
+        linkStates.delete(url.searchParams.get("state") ?? "");
+        const code = url.searchParams.get("code");
+        if (!bot || !pending || pending.expires < Date.now() || !code) {
+          res.writeHead(302, { location: "/creator?twitch=failed" });
+          return res.end();
+        }
+        const login = await bot.links.link(code, pending.creator);
+        await bot.refreshChannels();
+        res.writeHead(302, { location: `/creator?twitch=${encodeURIComponent(login)}` });
+        return res.end();
+      }
       if (req.method === "GET" && path === "/api/config") {
         return json(res, 200, {
           network: d.network,
@@ -214,6 +238,8 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
           minGiftUsdc: formatUsdc(config.minGiftUnits),
           // Whether creators can switch on Beam's Twitch chat bot, and its name (to /mod it).
           twitchBot: bot?.auth.login ? { login: bot.auth.login } : null,
+          // Connect Twitch works as soon as the Twitch app is configured, even before the bot is.
+          twitchConnect: !!bot,
         });
       }
       if (req.method === "POST" && path === "/api/relay/gift") {
@@ -266,7 +292,11 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
       // Setup progress for /creator: is this creator's overlay open somewhere (OBS, Studio) right now?
       const statusRoute = /^\/api\/creators\/(0x[0-9a-fA-F]{40})\/status$/.exec(path);
       if (req.method === "GET" && statusRoute) {
-        return json(res, 200, { overlays: byCreator.get(statusRoute[1]!.toLowerCase())?.size ?? 0 });
+        return json(res, 200, {
+          overlays: byCreator.get(statusRoute[1]!.toLowerCase())?.size ?? 0,
+          // The Twitch channel this wallet proved it owns (Connect Twitch), if any.
+          twitch: bot?.links.channelOf(statusRoute[1]!) ?? null,
+        });
       }
       const earningsRoute = /^\/api\/creators\/(0x[0-9a-fA-F]{40})\/earnings$/.exec(path);
       if (req.method === "GET" && earningsRoute) {

@@ -56,3 +56,7 @@ details summary {
 .more summary {
   margin: 0;
 }
+
+button.twitch {
+  background: #9146ff;
+}

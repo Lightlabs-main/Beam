@@ -27,6 +27,82 @@ const SCOPES = "chat:read chat:edit";
 
 // ------------------------------------------------------------------ auth
 
+async function tokenRequest(o: TwitchOptions, params: Record<string, string>) {
+  const res = await fetch("https://id.twitch.tv/oauth2/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ client_id: o.clientId, client_secret: o.clientSecret, ...params }),
+  });
+  const body = (await res.json()) as { access_token?: string; refresh_token?: string; expires_in?: number; message?: string };
+  if (!res.ok || !body.access_token) throw new Error(`Twitch token request failed: ${body.message ?? res.status}`);
+  return { accessToken: body.access_token, refreshToken: body.refresh_token ?? "", expiresAt: Date.now() + (body.expires_in ?? 3600) * 1000 };
+}
+
+async function validateToken(accessToken: string): Promise<{ login: string; scopes: string[] }> {
+  const res = await fetch("https://id.twitch.tv/oauth2/validate", { headers: { authorization: `OAuth ${accessToken}` } });
+  const body = (await res.json()) as { login?: string; scopes?: string[]; message?: string };
+  if (!res.ok || !body.login) throw new Error(`Twitch token is not valid: ${body.message ?? res.status}`);
+  return { login: body.login.toLowerCase(), scopes: body.scopes ?? [] };
+}
+
+function authorizeUrl(o: TwitchOptions, redirectUri: string, scope: string, state: string): string {
+  const u = new URL("https://id.twitch.tv/oauth2/authorize");
+  u.search = new URLSearchParams({ client_id: o.clientId, redirect_uri: redirectUri, response_type: "code", scope, state, force_verify: "true" }).toString();
+  return u.toString();
+}
+
+/**
+ * Streamers prove they own a Twitch channel by logging in with Twitch once. Beam keeps only the
+ * pairing (channel → Beam wallet); the login token is used to read the username and dropped.
+ * The bot joins a channel only when its owner linked it this way.
+ */
+export class TwitchLinks {
+  private links: Record<string, string> = {};
+  private readonly file: string;
+
+  constructor(private readonly o: TwitchOptions) {
+    this.file = join(o.dataDir, "twitch-links.json");
+  }
+
+  get redirectUri() {
+    return `${this.o.publicUrl}/twitch/link/callback`;
+  }
+
+  authorizeUrl(state: string) {
+    return authorizeUrl(this.o, this.redirectUri, "", state);
+  }
+
+  async load() {
+    try {
+      this.links = JSON.parse(await readFile(this.file, "utf8")) as Record<string, string>;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+    }
+  }
+
+  /** OAuth callback: whose channel is this? Then pair it with the wallet that asked. */
+  async link(code: string, creator: string): Promise<string> {
+    const t = await tokenRequest(this.o, { code, grant_type: "authorization_code", redirect_uri: this.redirectUri });
+    const { login } = await validateToken(t.accessToken);
+    this.links[login] = creator.toLowerCase();
+    await mkdir(this.o.dataDir, { recursive: true });
+    await writeFile(`${this.file}.tmp`, JSON.stringify(this.links));
+    await rename(`${this.file}.tmp`, this.file);
+    return login;
+  }
+
+  /** The Beam wallet that proved ownership of this Twitch channel, if any. */
+  ownerOf(login: string): string | null {
+    return this.links[login.toLowerCase()] ?? null;
+  }
+
+  /** The Twitch channel this wallet proved it owns, if any. */
+  channelOf(creator: string): string | null {
+    const c = creator.toLowerCase();
+    return Object.entries(this.links).find(([, w]) => w === c)?.[0] ?? null;
+  }
+}
+
 export class TwitchAuth {
   private tokens: Tokens | null = null;
   private readonly file: string;
@@ -45,16 +121,7 @@ export class TwitchAuth {
   }
 
   authorizeUrl(state: string): string {
-    const u = new URL("https://id.twitch.tv/oauth2/authorize");
-    u.search = new URLSearchParams({
-      client_id: this.o.clientId,
-      redirect_uri: this.redirectUri,
-      response_type: "code",
-      scope: SCOPES,
-      state,
-      force_verify: "true",
-    }).toString();
-    return u.toString();
+    return authorizeUrl(this.o, this.redirectUri, SCOPES, state);
   }
 
   async load(): Promise<Tokens | null> {
@@ -74,28 +141,10 @@ export class TwitchAuth {
     await rename(tmp, this.file);
   }
 
-  private async tokenRequest(params: Record<string, string>) {
-    const res = await fetch("https://id.twitch.tv/oauth2/token", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ client_id: this.o.clientId, client_secret: this.o.clientSecret, ...params }),
-    });
-    const body = (await res.json()) as { access_token?: string; refresh_token?: string; expires_in?: number; message?: string };
-    if (!res.ok || !body.access_token || !body.refresh_token) throw new Error(`Twitch token request failed: ${body.message ?? res.status}`);
-    return { accessToken: body.access_token, refreshToken: body.refresh_token, expiresAt: Date.now() + (body.expires_in ?? 3600) * 1000 };
-  }
-
-  private async validate(accessToken: string): Promise<{ login: string; scopes: string[] }> {
-    const res = await fetch("https://id.twitch.tv/oauth2/validate", { headers: { authorization: `OAuth ${accessToken}` } });
-    const body = (await res.json()) as { login?: string; scopes?: string[]; message?: string };
-    if (!res.ok || !body.login) throw new Error(`Twitch token is not valid: ${body.message ?? res.status}`);
-    return { login: body.login, scopes: body.scopes ?? [] };
-  }
-
   /** OAuth callback: exchange the code for the bot account's tokens and keep them. */
   async connect(code: string): Promise<string> {
-    const t = await this.tokenRequest({ code, grant_type: "authorization_code", redirect_uri: this.redirectUri });
-    const v = await this.validate(t.accessToken);
+    const t = await tokenRequest(this.o, { code, grant_type: "authorization_code", redirect_uri: this.redirectUri });
+    const v = await validateToken(t.accessToken);
     for (const s of SCOPES.split(" ")) if (!v.scopes.includes(s)) throw new Error(`Twitch did not grant ${s}`);
     await this.save({ ...t, login: v.login });
     return v.login;
@@ -105,7 +154,7 @@ export class TwitchAuth {
   async token(force = false): Promise<Tokens> {
     if (!this.tokens) throw new Error("the Beam bot is not connected to Twitch yet");
     if (force || this.tokens.expiresAt - Date.now() < 10 * 60_000) {
-      const t = await this.tokenRequest({ grant_type: "refresh_token", refresh_token: this.tokens.refreshToken });
+      const t = await tokenRequest(this.o, { grant_type: "refresh_token", refresh_token: this.tokens.refreshToken });
       await this.save({ ...t, login: this.tokens.login });
     }
     return this.tokens;
@@ -207,6 +256,7 @@ export function parseGiftCommand(text: string): { to: string | null; amount: str
 
 export class BeamBot {
   readonly auth: TwitchAuth;
+  readonly links: TwitchLinks;
   private readonly chat: TwitchChat;
   /** twitch channel (lowercase) → creator settings */
   private channels = new Map<string, SignedConfig>();
@@ -218,6 +268,7 @@ export class BeamBot {
     private readonly creators: CreatorStore,
   ) {
     this.auth = new TwitchAuth(o);
+    this.links = new TwitchLinks(o);
     this.chat = new TwitchChat(this.auth);
     this.chat.on("status", (s) => (this.status = s));
     this.chat.on("authFailed", () => this.chat.reconnectWithFreshToken());
@@ -226,6 +277,7 @@ export class BeamBot {
   }
 
   async start() {
+    await this.links.load();
     if (!(await this.auth.load())) {
       this.status = "waiting for /twitch/bot/connect";
       return;
@@ -234,11 +286,18 @@ export class BeamBot {
     await this.chat.connect();
   }
 
-  private async refreshChannels() {
+  /** Channels the bot is in, and whose wallet each belongs to. */
+  joined(): [string, string][] {
+    return [...this.channels].map(([c, sc]) => [c, sc.config.creator.toLowerCase()]);
+  }
+
+  async refreshChannels() {
     const next = new Map<string, SignedConfig>();
     for (const sc of await this.creators.all()) {
       const s = sc.config.stream;
-      if (sc.config.chatBot && s?.platform === "twitch") next.set(s.channel.toLowerCase(), sc);
+      // Only channels whose owner proved it by logging in with Twitch, paired to this same wallet.
+      const channel = s?.platform === "twitch" ? s.channel.toLowerCase() : null;
+      if (sc.config.chatBot && channel && this.links.ownerOf(channel) === sc.config.creator.toLowerCase()) next.set(channel, sc);
     }
     this.channels = next;
     this.chat.setChannels(new Set(next.keys()));
