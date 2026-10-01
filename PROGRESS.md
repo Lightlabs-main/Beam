@@ -35,7 +35,9 @@ Last updated 2026-09-30.
   take-back, all live (see verification).
 - **Beam Bomb** (live): one 163-character link; first chatters each claim a share; races, double
   claims, latecomers and dust all verified on testnet.
-- **Passkey gate (§3.2)**: create + receive verified on a real phone; send + recover pending.
+- **Passkey gate (§3.2)**: create, receive and send verified on a real phone; recover pending.
+- **Beam Studio** `/studio`: camera behind the live overlay, recorded in the browser (no OBS needed for the video).
+- **Claims on stream**: the overlay shows when a chatter claims or a bomb share is grabbed.
 - **Creator dashboard** `/creator`: OBS link, `!gift` command for Nightbot/StreamElements, signed
   settings (name, goal, split shares). **Instant splits** live: one gift paid three wallets in one tx.
 - **`pnpm verify` + CI** (GitHub Actions): typecheck, live-testnet tests, verify, indexer codegen,
@@ -56,7 +58,7 @@ Last updated 2026-09-30.
 
 - **Ramp** production key application (§3.3): not started by the user yet as far as recorded here.
 - **Mainnet MON** for the relayer wallet above (suggested 5 MON: deploy + a few hundred gifts).
-- **Passkey gate send + recover** on the user's phone.
+- **Passkey gate recover** on the user's phone (forget device → sign in with the same passkey).
 
 ## Known gaps
 

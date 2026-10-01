@@ -202,7 +202,7 @@ push labelled that split "Direct". Logs are now grouped per transaction for 60 m
 |---|---|
 | Create a passkey wallet on the user's phone (claim page) | `0x2091f4594c2b06b224fbca49267f2304938a0086` |
 | Receive: claim a $0.50 chatter gift into it, gaslessly | `0xa35bea196e68c12ebf28689df76292ed95a13ea88ce5cf6539146293d4cbcd3d`; wallet holds $0.50, 0 MON |
-| Send a gift from it | pending |
+| Send a gift from it (gift page, scanned from the overlay QR in Beam Studio) | `0x314435fb0a5e32985aabe7f920bd63656be4beae72d56104175079c4e62a1ff6` ("Stella", $0.50); on both open overlays 399 ms after its block; wallet still 0 MON |
 | Recover on another device / after forgetting this one | pending |
 
 ## Not yet verified
