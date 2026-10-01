@@ -19,6 +19,19 @@ const creator = new URLSearchParams(location.search).get("creator") ?? "";
 if (isAddress(creator)) {
   overlay.src = `/overlay?creator=${creator}`;
   $<HTMLAnchorElement>("earnings").href = `/earnings?creator=${creator}`;
+  const giftUrl = `${location.origin}/g/${creator}`;
+  $<HTMLInputElement>("gift-url").value = giftUrl;
+  $("share").hidden = false;
+  $("gift-copy").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(giftUrl);
+    } catch {
+      $<HTMLInputElement>("gift-url").select();
+      document.execCommand("copy");
+    }
+    $("gift-copy").textContent = "Copied";
+    setTimeout(() => ($("gift-copy").textContent = "Copy gift link"), 1500);
+  };
   $("buttons").hidden = false;
 } else {
   $("setup").hidden = false;

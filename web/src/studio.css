@@ -157,3 +157,10 @@ body.hide-controls .controls {
 body.hide-controls:not(.recording) .show-controls {
   display: block;
 }
+
+.share {
+  margin-top: 10px;
+}
+.share .hint {
+  margin: 0 0 8px;
+}

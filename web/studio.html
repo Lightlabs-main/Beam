@@ -36,6 +36,16 @@
         <button id="hide" type="button">Hide panel (H)</button>
         <a id="earnings" target="_blank" rel="noopener"><button type="button">Earnings ↗</button></a>
       </div>
+      <div class="share" id="share" hidden>
+        <p class="hint">
+          <b>This page is your private preview: it shows the camera of whoever opens it.</b> Don't share it. To let
+          people gift you, share your <b>gift link</b>:
+        </p>
+        <div class="row">
+          <input id="gift-url" readonly aria-label="Your gift link" />
+          <button id="gift-copy" type="button">Copy gift link</button>
+        </div>
+      </div>
       <p class="hint" id="hint">
         Scan the QR with your phone and gift: the alert fires here from the real on-chain gift. To record, press
         <b>Record</b> and choose <b>this tab</b>. Press <b>S</b> or the browser's "Stop sharing" to finish. <b>H</b> hides or shows this panel.
