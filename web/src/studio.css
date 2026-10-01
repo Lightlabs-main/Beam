@@ -133,3 +133,14 @@ body.recording .controls {
 [hidden] {
   display: none !important;
 }
+
+input[type="checkbox"] {
+  flex: none;
+  min-width: 0;
+  width: auto;
+  margin: 0 6px 0 0;
+  vertical-align: -2px;
+}
+body.hide-controls .controls {
+  display: none;
+}

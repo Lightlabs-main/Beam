@@ -52,6 +52,7 @@ $("cam").onclick = async () => {
 };
 
 $("full").onclick = () => void document.documentElement.requestFullscreen?.().catch(() => {});
+$("hide").onclick = () => document.body.classList.add("hide-controls");
 
 // ---- recording: capture this tab (camera + overlay + confetti) and, optionally, the microphone
 let recorder: MediaRecorder | null = null;
@@ -121,6 +122,7 @@ $("rec").onclick = async () => {
 };
 
 addEventListener("keydown", (e) => {
+  if (e.key.toLowerCase() === "h" && !(e.target instanceof HTMLInputElement)) document.body.classList.toggle("hide-controls");
   if (e.key.toLowerCase() === "s" && recorder) stop();
   if (e.key === "Escape" && document.body.classList.contains("recording")) stop();
 });
