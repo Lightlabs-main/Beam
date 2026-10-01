@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
@@ -8,6 +9,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import type { Config } from "./config.js";
 import type { ChainGiftFeed, ClaimEvent } from "./chainfeed.js";
 import type { CreatorStore } from "./creators.js";
+import type { BeamBot } from "./twitch.js";
 import type { Gift, GiftStream, Indexed } from "./feed.js";
 import { RelayError, type Relayer } from "./relayer.js";
 
@@ -21,12 +23,20 @@ const MIME: Record<string, string> = {
   ".json": "application/json",
 };
 
-type Deps = { config: Config; relayer: Relayer; indexed: Indexed; gifts: GiftStream; chain: ChainGiftFeed; creators: CreatorStore };
+type Deps = {
+  config: Config;
+  relayer: Relayer;
+  indexed: Indexed;
+  gifts: GiftStream;
+  chain: ChainGiftFeed;
+  creators: CreatorStore;
+  bot: BeamBot | null;
+};
 
 /** Gifts older than this when they reach the feed are history being re-indexed, not live. */
 const LIVE_WINDOW_MS = 60_000;
 
-export function createApp({ config, relayer, indexed, gifts, chain, creators }: Deps) {
+export function createApp({ config, relayer, indexed, gifts, chain, creators, bot }: Deps) {
   const { d } = config;
   const trustProxy = process.env.TRUST_PROXY === "1";
   const clientIp = (req: IncomingMessage) =>
@@ -97,6 +107,18 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
       req.on("error", reject);
     });
 
+  const oauthStates = new Map<string, number>();
+  const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  const page = (res: ServerResponse, status: number, title: string, body: string) => {
+    res.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+    res.end(
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
+        `<title>Beam · ${escapeHtml(title)}</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0a14;color:#f4f3fa;` +
+        `font:16px/1.5 system-ui,sans-serif;text-align:center;padding:16px}a{color:#22d3ee}</style></head>` +
+        `<body><main><h1>${escapeHtml(title)}</h1><p>${escapeHtml(body)}</p><p><a href="/">beamstreams.xyz</a></p></main></body></html>`,
+    );
+  };
+
   const notFound = (req: IncomingMessage, res: ServerResponse) => {
     if (!String(req.headers.accept ?? "").includes("text/html")) return json(res, 404, { error: "not found" });
     res.writeHead(404, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache" });
@@ -158,7 +180,28 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
           relayerAboveFloor: balance >= config.relayerFloorWei,
           indexer: indexerStatus,
           chainPush: chain.status,
+          twitchBot: bot ? bot.status : "not configured",
         });
+      }
+      // Connect Beam's Twitch bot account (admin only, once): Twitch login → tokens kept on the volume.
+      if (req.method === "GET" && path === "/twitch/bot/connect") {
+        if (!bot || !config.twitch) return page(res, 503, "Twitch bot not configured", "Set TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET and TWITCH_BOT_ADMIN_KEY first.");
+        if (url.searchParams.get("key") !== config.twitch.adminKey) return page(res, 403, "Not allowed", "That admin key is wrong.");
+        const state = randomBytes(16).toString("hex");
+        oauthStates.set(state, Date.now() + 10 * 60_000);
+        res.writeHead(302, { location: bot.auth.authorizeUrl(state), "cache-control": "no-store" });
+        return res.end();
+      }
+      if (req.method === "GET" && path === "/twitch/bot/callback") {
+        const state = url.searchParams.get("state") ?? "";
+        const expires = oauthStates.get(state);
+        oauthStates.delete(state);
+        if (!bot || !expires || expires < Date.now()) return page(res, 400, "Link expired", "Start again from the connect link.");
+        const code = url.searchParams.get("code");
+        if (!code) return page(res, 400, "Not connected", url.searchParams.get("error_description") ?? "Twitch did not return a code.");
+        const login = await bot.auth.connect(code);
+        await bot.start();
+        return page(res, 200, "Beam bot connected", `Beam's chat bot is now ${login} on Twitch. Creators switch it on from /creator.`);
       }
       if (req.method === "GET" && path === "/api/config") {
         return json(res, 200, {
@@ -169,6 +212,8 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
           beamClaims: d.beamClaims,
           explorer: d.explorer,
           minGiftUsdc: formatUsdc(config.minGiftUnits),
+          // Whether creators can switch on Beam's Twitch chat bot, and its name (to /mod it).
+          twitchBot: bot?.auth.login ? { login: bot.auth.login } : null,
         });
       }
       if (req.method === "POST" && path === "/api/relay/gift") {
@@ -217,6 +262,11 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
           expired: Number(drop.expiry) * 1000 <= Date.now(),
           from: gift ? { name: gift.displayName, message: gift.message, recipientLabel: gift.recipientLabel, channel: gift.channel } : null,
         });
+      }
+      // Setup progress for /creator: is this creator's overlay open somewhere (OBS, Studio) right now?
+      const statusRoute = /^\/api\/creators\/(0x[0-9a-fA-F]{40})\/status$/.exec(path);
+      if (req.method === "GET" && statusRoute) {
+        return json(res, 200, { overlays: byCreator.get(statusRoute[1]!.toLowerCase())?.size ?? 0 });
       }
       const earningsRoute = /^\/api\/creators\/(0x[0-9a-fA-F]{40})\/earnings$/.exec(path);
       if (req.method === "GET" && earningsRoute) {
@@ -296,7 +346,9 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
       `[${source}] ${gift.kind} ${gift.txHash} ${formatUsdc(BigInt(gift.amount))} USDC -> ${gift.to ?? gift.recipientLabel ?? "drop"} on ${gift.channel} ` +
         `(block ts + ${lag}ms, ${backfill ? "backfill, not alerted" : `${targets?.size ?? 0} overlays`})`,
     );
-    if (!targets || backfill) return;
+    if (backfill) return;
+    bot?.announceGift(gift);
+    if (!targets) return;
     const msg = JSON.stringify({ type: "gift", gift });
     for (const ws of targets) if (ws.readyState === ws.OPEN) ws.send(msg);
   };
@@ -310,6 +362,7 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
     if (!drop) return console.log(`[chain] claim ${claim.txHash} for unknown drop ${claim.dropId}`);
     const targets = byCreator.get(drop.channel.toLowerCase());
     console.log(`[chain] claim ${claim.txHash} ${formatUsdc(BigInt(claim.amount))} USDC of ${drop.kind} on ${drop.channel} (${targets?.size ?? 0} overlays)`);
+    bot?.announceClaim({ ...claim, kind: drop.kind, from: drop.displayName, recipientLabel: drop.recipientLabel }, drop.channel);
     if (!targets) return;
     const msg = JSON.stringify({
       type: "claim",

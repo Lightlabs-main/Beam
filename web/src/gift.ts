@@ -277,6 +277,19 @@ async function main() {
     void refresh();
   };
 
+  // Links from Beam's chat bot ("!gift @Tunde 5") arrive as ?to=@Tunde&amount=5: start there.
+  const pre = new URLSearchParams(location.search);
+  const preTo = pre.get("to");
+  if (preTo && /^@?[A-Za-z0-9_]{3,25}$/.test(preTo)) {
+    forButtons.find((b) => b.dataset.for === "chatter")?.click();
+    labelInput.value = preTo.startsWith("@") ? preTo : `@${preTo}`;
+  }
+  const preAmount = pre.get("amount");
+  if (preAmount && /^\d{1,4}(\.\d{1,2})?$/.test(preAmount)) {
+    custom.value = preAmount;
+    custom.dispatchEvent(new Event("input"));
+  }
+
   await refresh();
 }
 

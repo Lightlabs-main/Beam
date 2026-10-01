@@ -86,6 +86,11 @@ services:
       RPC_URL: ${RPC_URL:-}
       RPC_WS_URL: ${RPC_WS_URL:-}
       DATA_DIR: /data
+      PUBLIC_URL: https://${DOMAIN:-localhost}
+      # Beam's Twitch chat bot (optional): app from dev.twitch.tv; admin key guards /twitch/bot/connect.
+      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
+      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
+      TWITCH_BOT_ADMIN_KEY: ${TWITCH_BOT_ADMIN_KEY:-}
       PORT: 8787
       TRUST_PROXY: "1"
     volumes:

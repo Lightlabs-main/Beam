@@ -20,6 +20,10 @@ export type Config = {
   webDir: string;
   /** Where creators' signed settings are kept (a Docker volume in production). */
   dataDir: string;
+  /** Public origin for links in chat and OAuth redirects, e.g. https://beamstreams.xyz. */
+  publicUrl: string;
+  /** Beam's Twitch chat bot; null until a Twitch app is configured. */
+  twitch: { clientId: string; clientSecret: string; adminKey: string } | null;
 };
 
 function required(name: string): string {
@@ -55,6 +59,15 @@ export function loadConfig(): Config {
     hasuraWsUrl: optional("HASURA_WS_URL", hasuraHttpUrl.replace(/^http/, "ws")),
     hasuraAdminSecret: required("HASURA_ADMIN_SECRET"),
     dataDir: optional("DATA_DIR", new URL("../data", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")),
+    publicUrl: optional("PUBLIC_URL", `http://localhost:${optional("PORT", "8787")}`).replace(/\/$/, ""),
+    twitch:
+      process.env.TWITCH_CLIENT_ID && process.env.TWITCH_CLIENT_SECRET && process.env.TWITCH_BOT_ADMIN_KEY
+        ? {
+            clientId: process.env.TWITCH_CLIENT_ID,
+            clientSecret: process.env.TWITCH_CLIENT_SECRET,
+            adminKey: process.env.TWITCH_BOT_ADMIN_KEY,
+          }
+        : null,
     webDir: optional("WEB_DIR", new URL("../../web/dist", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")),
   };
 }

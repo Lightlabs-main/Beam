@@ -20,6 +20,8 @@ export type CreatorConfig = {
   shares: SplitShare[];
   /** Optional; settings saved before it existed have no `stream` key and still verify. */
   stream?: StreamLink | null;
+  /** Beam's chat bot joins the creator's Twitch chat: answers !gift and announces gifts. */
+  chatBot?: boolean;
   /** Unix milliseconds; each saved version must be newer than the last. */
   updatedAt: number;
 };
@@ -93,6 +95,7 @@ export function canonicalConfig(c: CreatorConfig): string {
     shares: c.shares.map((s) => ({ address: getAddress(s.address), bps: s.bps, label: s.label })),
     // Present only when set, so settings signed before streams existed keep their exact bytes.
     ...(c.stream ? { stream: { platform: c.stream.platform, channel: c.stream.channel } } : {}),
+    ...(c.chatBot ? { chatBot: true } : {}),
     updatedAt: c.updatedAt,
   });
 }

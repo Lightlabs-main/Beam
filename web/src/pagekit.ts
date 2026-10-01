@@ -9,6 +9,8 @@ export type ServerConfig = {
   beamGifts: string;
   explorer: string;
   minGiftUsdc: string;
+  /** Beam's Twitch chat bot, when this site has one connected. */
+  twitchBot: { login: string } | null;
 };
 
 export const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;

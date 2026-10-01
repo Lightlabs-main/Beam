@@ -1,0 +1,58 @@
+.num {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 800;
+  background: var(--panel-2);
+  border: 1px solid var(--edge);
+  vertical-align: 2px;
+}
+.step.done .num {
+  background: var(--ok);
+  border-color: transparent;
+  color: #0b0a14;
+}
+.step.done {
+  border-color: rgba(61, 220, 151, 0.35);
+}
+.status {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--soft);
+}
+.step.done .status {
+  color: var(--ok);
+}
+.howto {
+  margin: 12px 0;
+  padding-left: 20px;
+  color: var(--soft);
+  font-size: 15px;
+}
+.howto li {
+  margin: 4px 0;
+}
+.howto b {
+  color: var(--ink);
+}
+select {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+  color: var(--ink);
+  background: #0e0c18;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+details summary {
+  cursor: pointer;
+  margin-top: 8px;
+}
+.more summary {
+  margin: 0;
+}

@@ -1,4 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { EventEmitter } from "node:events";
+import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { type CreatorConfig, type Deployment, checkCreatorConfig, verifyCreatorConfig } from "@beam/shared";
 import { type Address, type Hex, getAddress, isAddress } from "viem";
@@ -14,6 +15,7 @@ const configBody = z.object({
     goal: z.object({ usdc: z.string(), title: z.string(), since: z.number().int() }).nullable(),
     shares: z.array(z.object({ address, bps: z.number().int(), label: z.string() })).max(9),
     stream: z.object({ platform: z.enum(["twitch", "youtube", "kick"]), channel: z.string().max(64) }).nullable().optional(),
+    chatBot: z.boolean().optional(),
     updatedAt: z.number().int(),
   }),
   signature: z.string().regex(/^0x[0-9a-fA-F]{130}$/, "expected a 65-byte signature").transform((h) => h as Hex),
@@ -25,13 +27,27 @@ export type SignedConfig = { config: CreatorConfig; signature: Hex };
  * Creators' signed settings, one JSON file each. The server can't forge or alter them: every
  * read serves the creator's own signature alongside, and every write is verified.
  */
-export class CreatorStore {
+export class CreatorStore extends EventEmitter<{ saved: [SignedConfig] }> {
   private readonly cache = new Map<string, SignedConfig | null>();
 
   constructor(
     private readonly d: Deployment,
     private readonly dir: string,
-  ) {}
+  ) {
+    super();
+  }
+
+  /** Every saved creator (for the chat bot to know which channels to join). */
+  async all(): Promise<SignedConfig[]> {
+    let names: string[] = [];
+    try {
+      names = (await readdir(this.dir)).filter((n) => /^0x[0-9a-f]{40}.json$/.test(n));
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+    }
+    const out = await Promise.all(names.map((n) => this.get(n.slice(0, 42))));
+    return out.filter((x): x is SignedConfig => x !== null);
+  }
 
   private file(creator: string) {
     return join(this.dir, `${getAddress(creator).toLowerCase()}.json`);
@@ -72,6 +88,7 @@ export class CreatorStore {
     await writeFile(tmp, JSON.stringify(value));
     await rename(tmp, this.file(creator));
     this.cache.set(creator.toLowerCase(), value);
+    this.emit("saved", value);
     return value;
   }
 }

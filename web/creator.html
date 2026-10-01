@@ -4,8 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0a14" />
-    <title>Creator setup · Beam</title>
+    <title>Set up Beam</title>
     <link rel="stylesheet" href="/src/app.css" />
+    <link rel="stylesheet" href="/src/creator.css" />
   </head>
   <body>
     <div class="wrap">
@@ -14,13 +15,14 @@
         <span class="net" id="net" hidden></span>
       </header>
 
-      <h1>Set up Beam for your stream</h1>
-      <p class="sub">Your passkey wallet receives every gift directly. Nobody holds your money in between.</p>
+      <h1>Set up Beam</h1>
+      <p class="sub" id="progress">Six short steps. Each one ticks itself when it's done.</p>
       <p class="error" id="page-error" hidden></p>
 
+      <!-- Step 1 is the sign-in card itself. -->
       <section class="card" id="signin">
-        <h2>Your creator wallet</h2>
-        <p class="muted small">Gifts go straight to this wallet. Secured by your passkey; no app, no seed phrase.</p>
+        <h2><span class="num">1</span> Your Beam wallet</h2>
+        <p class="muted small">Gifts land here the moment they're sent. Secured by your passkey: no app, no seed phrase.</p>
         <div class="field">
           <label for="signup-name">Your channel name</label>
           <input id="signup-name" maxlength="32" autocomplete="nickname" placeholder="e.g. Tunde Live" />
@@ -30,103 +32,125 @@
         <p class="error" id="signin-error" hidden></p>
       </section>
 
-      <section id="dash" hidden>
-        <section class="card">
-          <h2>Share this with your viewers</h2>
+      <div id="steps" hidden>
+        <section class="card step done" id="step-wallet">
+          <h2><span class="num">✓</span> Your Beam wallet</h2>
+          <p class="muted small">Gifts go straight to <span class="mono" id="me"></span>. <a id="earnings-link">See my earnings →</a></p>
+        </section>
+
+        <section class="card step" id="step-channel">
+          <h2><span class="num">2</span> Your channel</h2>
+          <label for="display">Name viewers see</label>
+          <input id="display" maxlength="32" placeholder="Tunde Live" />
+          <label for="platform">Where do you stream?</label>
+          <select id="platform">
+            <option value="twitch">Twitch</option>
+            <option value="youtube">YouTube</option>
+            <option value="kick">Kick</option>
+            <option value="">I don't stream yet</option>
+          </select>
+          <div id="channel-field">
+            <label for="channel" id="channel-label">Twitch username</label>
+            <input id="channel" autocomplete="off" spellcheck="false" />
+            <p class="muted small" id="channel-help"></p>
+          </div>
+          <button id="save-channel" type="button">Save</button>
+          <p class="error" id="channel-error" hidden></p>
+        </section>
+
+        <section class="card step" id="step-obs">
+          <h2><span class="num">3</span> Put Beam on your stream (OBS)</h2>
+          <button id="obs-download" type="button">⬇ Download my OBS setup</button>
+          <ol class="howto">
+            <li>In OBS, open the <b>Scene Collection</b> menu at the top → <b>Import</b>.</li>
+            <li>Click <b>…</b>, choose <b>Beam-OBS-setup.json</b> from Downloads, tick it, click <b>Import</b>.</li>
+            <li><b>Scene Collection</b> → <b>Beam</b>. Double-click <b>Camera</b> and pick your webcam.</li>
+          </ol>
+          <p class="status" id="obs-status">Waiting for your overlay to connect…</p>
+          <details>
+            <summary>Add it by hand instead</summary>
+            <p class="muted small">Sources → <b>+</b> → <b>Browser</b>, paste this URL, width <b>1920</b>, height <b>1080</b>:</p>
+            <div class="addr">
+              <input id="overlay-url" readonly aria-label="Overlay URL" />
+              <button class="inline" id="overlay-copy" type="button">Copy</button>
+            </div>
+          </details>
+          <p class="muted small">No OBS? <a id="studio-link" target="_blank" rel="noopener">Beam Studio</a> previews and records in your browser.</p>
+        </section>
+
+        <section class="card step" id="step-chat">
+          <h2><span class="num">4</span> Turn on <span class="mono">!gift</span> in your chat</h2>
+          <div id="chat-bot" hidden>
+            <p class="muted small">
+              Beam's bot joins your Twitch chat: <span class="mono">!gift</span> gets viewers your link,
+              <span class="mono">!gift @friend 5</span> gifts a chatter, and every gift is announced.
+            </p>
+            <button id="bot-toggle" type="button">Turn on !gift</button>
+            <p class="small" id="bot-mod" hidden>
+              Last bit: in your Twitch chat, type <span class="mono" id="mod-cmd"></span> once, so the bot is allowed to post
+              links.
+            </p>
+          </div>
+          <div id="chat-manual" hidden>
+            <p class="muted small" id="manual-why"></p>
+            <ol class="howto">
+              <li>Go to <a href="https://nightbot.tv" target="_blank" rel="noopener">nightbot.tv</a>, log in with your streaming account, and click <b>Join Channel</b>.</li>
+              <li>In your chat, paste this once:</li>
+            </ol>
+            <div class="addr">
+              <input id="nightbot" readonly />
+              <button class="inline" id="nightbot-copy" type="button">Copy</button>
+            </div>
+            <label style="font-weight: 400; margin-top: 12px"><input type="checkbox" id="manual-done" style="width: auto" /> Done: <span class="mono">!gift</span> answers in my chat</label>
+          </div>
+        </section>
+
+        <section class="card step" id="step-test">
+          <h2><span class="num">5</span> Test it</h2>
           <p class="muted small">
-            Your watch page: your live stream, your chat and gifting on one link. Add where you stream in your settings
-            below so the video shows there.
+            Sends a real <span id="test-amount">$0.10</span> gift from your wallet to itself. Watch OBS: the confetti should
+            fire within a second. Your balance: <b id="test-balance">…</b>
           </p>
+          <button id="test-gift" type="button">Send a test gift</button>
+          <p class="small" id="test-result" hidden></p>
+        </section>
+
+        <section class="card step" id="step-share">
+          <h2><span class="num">6</span> Share with your viewers</h2>
+          <p class="muted small">Your watch page: your stream, your chat and the gift button on one link.</p>
           <div class="addr">
             <input id="watch-url" readonly aria-label="Your watch page" />
             <button class="inline" id="watch-copy" type="button">Copy</button>
           </div>
           <p class="small"><a id="watch-open" target="_blank" rel="noopener">Open my watch page ↗</a></p>
-        </section>
-
-        <section class="card">
-          <h2>Your earnings</h2>
-          <p class="muted small">Every gift lands in your wallet the moment it's sent.</p>
-          <a id="earnings-link"><button type="button">See my earnings</button></a>
-        </section>
-
-        <section class="card">
-          <h2>1. Add the overlay to OBS</h2>
-          <p class="muted small">Sources → <b>+</b> → <b>Browser</b>. Paste this URL, set width <b>1920</b> and height <b>1080</b>.</p>
-          <div class="addr">
-            <input id="overlay-url" readonly aria-label="Overlay URL" />
-            <button class="inline" id="overlay-copy" type="button">Copy</button>
-          </div>
-          <p class="small"><a id="overlay-preview" target="_blank" rel="noopener">Preview overlay ↗</a></p>
-          <p class="muted small">No OBS yet? <a id="studio-link" target="_blank" rel="noopener"><b>Open Beam Studio</b></a>: your camera with the live overlay on top, recordable to a video, right in the browser.</p>
-          <h2 style="margin-top: 18px">Test your alert</h2>
-          <p class="muted small">
-            Sends a real <span id="test-amount">$0.10</span> gift from your wallet to itself, so the alert fires on your overlay
-            exactly as a viewer's would. Your balance: <b id="test-balance">…</b>
-          </p>
-          <button class="ghost" id="test-gift" type="button">Send a test gift</button>
-          <p class="small" id="test-result" hidden></p>
-        </section>
-
-        <section class="card">
-          <h2>2. Add <span class="mono">!gift</span> to your chat bot</h2>
-          <p class="muted small">Viewers type <span class="mono">!gift</span> and get your gift link. Paste one of these in your chat:</p>
-          <label for="nightbot">Nightbot</label>
-          <div class="addr">
-            <input id="nightbot" readonly />
-            <button class="inline" id="nightbot-copy" type="button">Copy</button>
-          </div>
-          <label for="streamelements">StreamElements</label>
-          <div class="addr">
-            <input id="streamelements" readonly />
-            <button class="inline" id="se-copy" type="button">Copy</button>
-          </div>
-          <label for="gift-url">Your gift link</label>
+          <label for="gift-url">Just the gift link</label>
           <div class="addr">
             <input id="gift-url" readonly />
             <button class="inline" id="gift-copy" type="button">Copy</button>
           </div>
         </section>
 
-        <form class="card" id="settings" novalidate>
-          <h2>3. Your settings</h2>
-          <label for="display">Name viewers see</label>
-          <input id="display" maxlength="32" />
+        <details class="card more">
+          <summary><b>More settings</b>: goal bar and revenue splits</summary>
+          <form id="settings" novalidate>
+            <label for="goal">Goal in USD <span class="count">optional</span></label>
+            <input id="goal" inputmode="decimal" placeholder="100" />
+            <label for="goal-title">Goal title</label>
+            <input id="goal-title" maxlength="40" placeholder="Stream goal" />
+            <label style="font-weight: 400"><input type="checkbox" id="goal-reset" style="width: auto" /> Start counting the goal from now</label>
 
-          <label for="goal">Goal in USD <span class="count">optional</span></label>
-          <input id="goal" inputmode="decimal" placeholder="100" />
-          <label for="goal-title">Goal title</label>
-          <input id="goal-title" maxlength="40" placeholder="Stream goal" />
-          <label style="font-weight: 400"><input type="checkbox" id="goal-reset" style="width: auto" /> Start counting the goal from now</label>
+            <h2 style="margin-top: 20px">Split every gift</h2>
+            <p class="muted small">A co-streamer, mod, editor or charity gets their share in the same transaction as you. You keep the rest.</p>
+            <div id="shares"></div>
+            <button class="ghost" id="add-share" type="button">+ Add a share</button>
+            <p class="small" id="keep"></p>
 
-          <h2 style="margin-top: 20px">Where you stream</h2>
-          <p class="muted small">Your watch page shows this stream and its chat next to the gift button.</p>
-          <label for="platform">Platform</label>
-          <select id="platform" style="width: 100%; font: inherit; font-size: 16px; color: inherit; background: #0e0c18; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 14px">
-            <option value="">Not set</option>
-            <option value="twitch">Twitch</option>
-            <option value="youtube">YouTube</option>
-            <option value="kick">Kick</option>
-          </select>
-          <div id="channel-field" hidden>
-            <label for="channel" id="channel-label">Channel</label>
-            <input id="channel" autocomplete="off" spellcheck="false" />
-            <p class="muted small" id="channel-help"></p>
-          </div>
-
-          <h2 style="margin-top: 20px">Split every gift</h2>
-          <p class="muted small">
-            A co-streamer, mod, editor or charity gets their share in the same transaction as you. You keep the rest.
-          </p>
-          <div id="shares"></div>
-          <button class="ghost" id="add-share" type="button">+ Add a share</button>
-          <p class="small" id="keep"></p>
-
-          <button id="save" type="submit">Save settings</button>
-          <p class="error" id="save-error" hidden></p>
-          <p class="muted small" id="saved" hidden>Saved and signed by your wallet ✓</p>
-        </form>
-      </section>
+            <button id="save" type="submit">Save settings</button>
+            <p class="error" id="save-error" hidden></p>
+            <p class="muted small" id="saved" hidden>Saved and signed by your wallet ✓</p>
+          </form>
+        </details>
+      </div>
     </div>
     <script type="module" src="/src/creator.ts"></script>
   </body>
