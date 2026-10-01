@@ -27,6 +27,7 @@ async function main() {
   const giftUrl = `${origin}/g/${me}`;
   $<HTMLInputElement>("overlay-url").value = overlayUrl;
   $<HTMLAnchorElement>("overlay-preview").href = overlayUrl;
+  $<HTMLAnchorElement>("studio-link").href = `${origin}/studio?creator=${me}`;
   $<HTMLInputElement>("gift-url").value = giftUrl;
   $<HTMLInputElement>("nightbot").value = `!commands add !gift Send a gift that pops up on stream: ${giftUrl}`;
   $<HTMLInputElement>("streamelements").value = `!cmd add gift Send a gift that pops up on stream: ${giftUrl}`;

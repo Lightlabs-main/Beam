@@ -118,6 +118,8 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators }: 
             ? "/wallet.html"
             : pathname === "/creator"
               ? "/creator.html"
+              : pathname === "/studio"
+                ? "/studio.html"
             : /^\/g\/0x[0-9a-fA-F]{40}\/?$/.test(pathname)
               ? "/gift.html"
               : /^\/c\/0x[0-9a-fA-F]{64}\/?$/.test(pathname)

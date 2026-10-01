@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <title>Beam Studio</title>
+    <link rel="stylesheet" href="/src/studio.css" />
+  </head>
+  <body>
+    <!-- 16:9 stage: camera behind, the live Beam overlay (the same page OBS shows) on top. -->
+    <main class="stage" id="stage">
+      <video id="camera" autoplay muted playsinline></video>
+      <div class="placeholder" id="placeholder">
+        <p>Your camera appears here.</p>
+      </div>
+      <iframe id="overlay" title="Beam overlay" allow="autoplay"></iframe>
+    </main>
+
+    <!-- Controls: hidden while recording so they never appear in the video. -->
+    <section class="controls" id="controls">
+      <div class="brand">Beam Studio</div>
+      <div class="setup" id="setup" hidden>
+        <label for="creator">Creator wallet address</label>
+        <div class="row">
+          <input id="creator" placeholder="0x…" autocomplete="off" spellcheck="false" />
+          <button id="go" type="button">Open</button>
+        </div>
+        <p class="hint">Get yours on <a href="/creator">beamstreams.xyz/creator</a>.</p>
+      </div>
+      <div class="buttons" id="buttons" hidden>
+        <button id="cam" type="button">Turn on camera</button>
+        <label class="mic"><input type="checkbox" id="mic" checked /> Record my microphone</label>
+        <button id="rec" class="primary" type="button">● Record</button>
+        <button id="full" type="button">Full screen</button>
+      </div>
+      <p class="hint" id="hint">
+        Scan the QR with your phone and gift: the alert fires here from the real on-chain gift. To record, press
+        <b>Record</b> and choose <b>this tab</b>. Press <b>S</b> or the browser's "Stop sharing" to finish.
+      </p>
+      <p class="error" id="error" hidden></p>
+    </section>
+
+    <script type="module" src="/src/studio.ts"></script>
+  </body>
+</html>
