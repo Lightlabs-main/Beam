@@ -18,6 +18,30 @@ revert with FiatToken v2's error strings (asserted exactly in the tests).
 cast call 0x754704Bc059F8C67012fEd69BC8A327a5aafb603 "version()(string)" --rpc-url https://rpc.monad.xyz
 ```
 
+## Monad mainnet (chain 143)
+
+Deployed 2026-10-02 after the full suite passed on a mainnet fork (50/50), from deployer
+`0x1f41eBf1e60E5dAa9cDda69637a78a9381b23388`; cost 0.358 MON at 102 gwei.
+
+| Contract | Address | Deploy tx |
+|---|---|---|
+| BeamGifts | `0xbbDfDCcd88Bfdf28ba51Fc4fC13c9B0a40dfd1Db` | `0x2e30c371e5fd2ea06e44fc15837f48558a3d1ba8e71a247412eb7929e0cb2d96` |
+| BeamClaims | `0xF4932F63dD5de62fDd38e11e4c6F7ecc1a63bdE2` | `0x7cb2452cd26473bfea9840b5e389f93049a6114939887fa3c8cf5fe87a37ae91` |
+
+Both return Circle mainnet USDC from `usdc()`. Live at https://beamstreams.xyz (relayer
+`0xDeB7C9F7DBa79274872CDc4b0F878E9618fd598f`); testnet moved to https://testnet.beamstreams.xyz.
+`pnpm verify` passes against both.
+
+### First real mainnet gift (definition of done)
+
+Sent 2026-10-02 from the user's phone: the passkey wallet `0x2091f4594c2b06b224fbca49267f2304938a0086`
+(created on the phone with Mera) scanned the overlay QR in Beam Studio and gifted $0.10 as "Stella".
+
+- Tx `0x4dd6de125efc97daa4257af7ce84352922c5dbdd12544e052d897d20e8a5b105`, block 109927910, status success.
+- Submitted by the relayer; the viewer held 0 MON before and after.
+- Viewer USDC 1.00 → 0.90; creator `0xF5446059ba06Fe5381c6CBD21294A43E19B31159` 0.00 → 0.10 in the same transaction.
+- Reached the creator's overlay 905 ms after the block timestamp; the alert fired on stream.
+
 ## Contract tests
 
 The suite forks live Monad and runs against Circle's deployed USDC; no token is mocked.

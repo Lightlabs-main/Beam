@@ -47,21 +47,23 @@ Last updated 2026-09-30.
 - **`pnpm verify` + CI** (GitHub Actions): typecheck, live-testnet tests, verify, indexer codegen,
   Forge suite on mainnet and testnet forks. Green.
 - **README** (§11).
+- **Mainnet live** (2026-10-02): BeamGifts `0xbbDf…d1Db`, BeamClaims `0xF493…bdE2` at https://beamstreams.xyz;
+  testnet at https://testnet.beamstreams.xyz. `pnpm verify` passes on both.
+- **Definition of done: first real mainnet gift** from a phone passkey wallet holding 0 MON, settled and
+  alerted on stream (tx `0x4dd6de12…a5b105`).
+- **Guided creator setup** (6 self-ticking steps), one-download OBS scene, Beam Twitch bot with
+  channel-ownership proof (Connect with Twitch).
 
 ## Next
 
-1. Mera passkey gate (§3.2) on a real phone: create, receive, send, recover. Pages are live; needs the
-   user's phone. Record it.
-2. Mainnet: relayer/deployer wallet created (`0x19Ec2A9f412A00913341E9F347A84AFa1077F24e`, key in `.env`,
-   separate from testnet). Needs MON from the user, then deploy (~0.36 MON at 102 gwei; ~0.019 MON per
-   gift). Monad bills the gas limit, not gas used: keep relayer gas limits tight.
-3. Gift Actions beyond confetti (TTS, effects) and chat auto-announce.
-4. Demo video; real streamers.
+1. Demo video (recording runbook in docs/); real streamers.
+2. Beam Twitch bot: waiting on a Twitch app (2FA blocked the user's account; a teammate can register it).
+3. Ramp card funding when the production key arrives.
+4. Optional: Gift Actions beyond confetti (TTS, larger effects).
 
 ## Blocked / waiting on
 
 - **Ramp** production key application (§3.3): not started by the user yet as far as recorded here.
-- **Mainnet MON** for the relayer wallet above (suggested 5 MON: deploy + a few hundred gifts).
 - **Passkey gate recover** on the user's phone (forget device → sign in with the same passkey).
 
 ## Known gaps

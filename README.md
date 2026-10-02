@@ -6,7 +6,8 @@ video while the USDC is already in the creator's wallet.
 
 **The animation isn't a promise to pay the creator later. The animation is the settlement.**
 
-Live at **https://beamstreams.xyz** (Monad testnet while in build; see [Status](#status)).
+Live on **Monad mainnet** at **https://beamstreams.xyz**, with a free test-money version at
+**https://testnet.beamstreams.xyz**.
 
 ## The problem
 
@@ -43,7 +44,20 @@ The gift has to appear on stream while the moment is still happening. Monad's su
 makes the animation land live, and near-zero fees make a $0.50 gift worth sending. On a slow or
 expensive chain neither is true.
 
-## Live addresses (Monad testnet, chain 10143)
+## Live addresses
+
+### Monad mainnet (chain 143)
+
+| | Address |
+|---|---|
+| BeamGifts | [`0xbbDfDCcd88Bfdf28ba51Fc4fC13c9B0a40dfd1Db`](https://monadscan.com/address/0xbbDfDCcd88Bfdf28ba51Fc4fC13c9B0a40dfd1Db) |
+| BeamClaims | [`0xF4932F63dD5de62fDd38e11e4c6F7ecc1a63bdE2`](https://monadscan.com/address/0xF4932F63dD5de62fDd38e11e4c6F7ecc1a63bdE2) |
+| USDC (Circle) | [`0x754704Bc059F8C67012fEd69BC8A327a5aafb603`](https://monadscan.com/address/0x754704Bc059F8C67012fEd69BC8A327a5aafb603) |
+
+First real gift on mainnet, from a passkey wallet made on a phone, holding zero MON:
+[`0x4dd6de12…a5b105`](https://monadscan.com/tx/0x4dd6de125efc97daa4257af7ce84352922c5dbdd12544e052d897d20e8a5b105)
+
+### Monad testnet (chain 10143)
 
 | | Address |
 |---|---|
@@ -58,8 +72,6 @@ Real transactions, all from wallets holding zero MON:
 - A chatter's passkey wallet claiming a gift on a real phone: [`0xa35bea19…cbcd3d`](https://testnet.monadscan.com/tx/0xa35bea196e68c12ebf28689df76292ed95a13ea88ce5cf6539146293d4cbcd3d)
 - Beam Bomb share claimed by a fresh wallet: [`0xdcc22ca7…3b5d6`](https://testnet.monadscan.com/tx/0xdcc22ca759d17e14b6056160ff37842e95dfb705e476e1e3b587402701e3b5d6)
 
-Mainnet deployment follows; Circle USDC on Monad mainnet is
-`0x754704Bc059F8C67012fEd69BC8A327a5aafb603`, and the contract suite already passes against it.
 
 ## Built with
 
@@ -146,8 +158,8 @@ support, and mobile-money top-up for cash economies.
 
 ## Status
 
-Built during Monad Metropolis (Sept 1 – Oct 13, 2026). Running on Monad testnet with test USDC while
-the mainnet deployment is prepared. Progress, next steps and blockers: [PROGRESS.md](PROGRESS.md).
+Built during Monad Metropolis (Sept 1 – Oct 13, 2026). Live on Monad mainnet; the testnet version stays
+up for trying Beam with free test USDC. Progress, next steps and blockers: [PROGRESS.md](PROGRESS.md).
 
 ## Repository
 
