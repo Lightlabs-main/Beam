@@ -1,3 +1,5 @@
+import { downloadObsSetup } from "./obs.js";
+
 // Beam Studio (/studio?creator=0x…): camera behind the live Beam overlay, recorded to a video file
 // in the browser. The overlay is the same page OBS shows, so alerts fire from real on-chain gifts.
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -19,6 +21,8 @@ const creator = new URLSearchParams(location.search).get("creator") ?? "";
 if (isAddress(creator)) {
   overlay.src = `/overlay?creator=${creator}`;
   $<HTMLAnchorElement>("earnings").href = `/earnings?creator=${creator}`;
+  // The same overlay, set up in OBS from one file (Scene Collection → Import).
+  $("obs").onclick = () => downloadObsSetup(`${location.origin}/overlay?creator=${creator}`);
   const giftUrl = `${location.origin}/g/${creator}`;
   $<HTMLInputElement>("gift-url").value = giftUrl;
   $("share").hidden = false;

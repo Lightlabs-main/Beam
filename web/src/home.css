@@ -256,3 +256,11 @@ footer p {
     flex-direction: column;
   }
 }
+
+#obs-download {
+  margin-top: 8px;
+}
+.result details summary {
+  cursor: pointer;
+  margin: 8px 0;
+}

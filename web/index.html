@@ -76,11 +76,23 @@
             <button type="button" id="copy">Copy</button>
           </div>
           <p class="muted small" id="goal-note" hidden>The goal counts gifts from the moment you created this link.</p>
+
+          <p style="margin-top: 16px"><b>Easiest: one file sets up OBS for you</b></p>
+          <button type="button" id="obs-download">⬇ Download my OBS setup</button>
           <ol class="howto">
-            <li>In OBS, click <b>+</b> under Sources and choose <b>Browser</b>.</li>
-            <li>Paste the link into <b>URL</b>, set <b>Width 1920</b> and <b>Height 1080</b>, and click OK.</li>
-            <li>Keep the source above your camera and game layers.</li>
+            <li>In OBS, open the <b>Scene Collection</b> menu at the top → <b>Import</b>.</li>
+            <li>Click <b>…</b>, choose <b>Beam-OBS-setup.json</b> from Downloads, tick it, click <b>Import</b>.</li>
+            <li><b>Scene Collection</b> → <b>Beam</b>. Double-click <b>Camera</b> and pick your webcam.</li>
           </ol>
+
+          <details>
+            <summary class="muted small">Or add it to an existing scene by hand</summary>
+            <ol class="howto">
+              <li>In OBS, click <b>+</b> under Sources and choose <b>Browser</b>.</li>
+              <li>Paste the link into <b>URL</b>, set <b>Width 1920</b> and <b>Height 1080</b>, and click OK.</li>
+              <li>Keep the source above your camera and game layers.</li>
+            </ol>
+          </details>
           <a id="preview" class="secondary" target="_blank" rel="noopener">Preview overlay ↗</a>
         </div>
       </section>
