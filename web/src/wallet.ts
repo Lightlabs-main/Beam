@@ -22,6 +22,8 @@ import type { LocalAccount } from "viem";
 export const RP_ID = location.hostname.replace(/^www\./, "");
 const CREDENTIAL_KEY = "beam.passkey";
 const ADDRESS_KEY = "beam.address";
+/** Survives "forget this device": tells the page to look for an existing passkey before creating one. */
+const HAD_WALLET_KEY = "beam.hadWallet";
 
 export type Wallet = { account: LocalAccount; end(): void };
 
@@ -43,6 +45,7 @@ function walletFromPrf(prfOutput: Uint8Array): Wallet {
   const account = toViemAccount(session);
   try {
     localStorage.setItem(ADDRESS_KEY, account.address);
+    localStorage.setItem(HAD_WALLET_KEY, "1");
   } catch {}
   return { account, end: () => session.end() };
 }
@@ -72,6 +75,15 @@ export function rememberedAddress(): string | null {
 }
 
 export const hasPasskeyOnDevice = () => storedCredential() !== undefined;
+
+/** Whether this browser has ever opened a Beam wallet (even if it was later forgotten). */
+export function everHadWallet(): boolean {
+  try {
+    return localStorage.getItem(HAD_WALLET_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 
 /** Creates a new passkey (one or two biometric prompts) and returns its wallet. */
 export async function createWallet(displayName: string): Promise<Wallet> {

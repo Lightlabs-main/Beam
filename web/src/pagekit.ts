@@ -1,6 +1,6 @@
 // Shared plumbing for the viewer pages: server config, balances, and the passkey sign-in card.
 import { type Deployment, deployment } from "@beam/shared";
-import { type Wallet, createWallet, hasPasskeyOnDevice, passkeyErrorMessage, rememberedAddress, signIn } from "./wallet.js";
+import { type Wallet, createWallet, everHadWallet, hasPasskeyOnDevice, passkeyErrorMessage, rememberedAddress, signIn } from "./wallet.js";
 
 export type ServerConfig = {
   network: "testnet" | "mainnet";
@@ -65,7 +65,11 @@ export function signInCard(nameInput?: HTMLInputElement): Promise<Wallet> {
   const error = $("signin-error");
   const known = hasPasskeyOnDevice();
   const remembered = rememberedAddress();
-  primary.textContent = known && remembered ? `Continue as ${short(remembered)}` : "Create my wallet with a passkey";
+  // A device that had a Beam wallet signs in first: "create" makes a brand-new, separate wallet,
+  // which is how people end up with two passkeys and two balances.
+  const returning = !known && everHadWallet();
+  primary.textContent = known && remembered ? `Continue as ${short(remembered)}` : returning ? "Sign in with my Beam passkey" : "Create my wallet with a passkey";
+  other.textContent = known ? "Use a different Beam passkey" : returning ? "Create a new, separate wallet instead" : "I have a Beam passkey on another device";
   if (nameInput) nameInput.closest(".field")!.toggleAttribute("hidden", known);
 
   return new Promise((resolve) => {
@@ -86,8 +90,9 @@ export function signInCard(nameInput?: HTMLInputElement): Promise<Wallet> {
         primary.disabled = other.disabled = false;
       }
     };
-    primary.onclick = () => attempt(() => (known ? signIn() : createWallet(nameInput?.value ?? "")), primary);
-    other.onclick = () => attempt(() => signIn(true), other);
+    primary.onclick = () =>
+      attempt(() => (known ? signIn() : returning ? signIn(true) : createWallet(nameInput?.value ?? "")), primary);
+    other.onclick = () => attempt(() => (returning ? createWallet(nameInput?.value ?? "") : signIn(true)), other);
   });
 }
 
