@@ -43,10 +43,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: config.yaml matches contracts/deployments and the compiled ABI
-        run: node scripts/write-config.mjs && git diff --exit-code config.yaml
+      - name: Each network's config matches contracts/deployments and the compiled ABI
+        run: |
+          for f in ../contracts/deployments/*.json; do
+            BEAM_NETWORK=$(basename "$f" .json) node scripts/write-config.mjs
+          done
+          git diff --exit-code -- 'config.*.yaml'
       - run: pnpm install --frozen-lockfile --ignore-workspace
-      - run: pnpm envio codegen
+      - run: cp config.testnet.yaml config.yaml && pnpm envio codegen
       - run: pnpm exec tsc --noEmit
 
   contracts:

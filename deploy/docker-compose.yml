@@ -1,71 +1,97 @@
-# Production stack for one VPS. Secrets come from deploy/.env (never committed).
-# Only Caddy is reachable from the internet; Postgres, Hasura and the indexer stay internal.
+# Production stacks for one VPS: Monad mainnet and Monad testnet side by side, each with its own
+# Postgres, Hasura, Envio indexer and Beam server. Secrets come from deploy/.env (never committed).
+# Only Caddy is reachable from the internet; it serves DOMAIN (MAIN_UPSTREAM, mainnet once it is
+# deployed) and testnet.DOMAIN (the testnet stack).
 name: beam
 
+x-hasura: &hasura
+  image: hasura/graphql-engine:v2.43.0
+  restart: always
+  user: 1001:1001
+  healthcheck:
+    test: timeout 1s bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1
+    interval: 5s
+    retries: 50
+
+x-hasura-env: &hasura-env
+  HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET:?set HASURA_ADMIN_SECRET}
+  HASURA_GRAPHQL_ENABLE_CONSOLE: "false"
+  HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: "true"
+  HASURA_GRAPHQL_UNAUTHORIZED_ROLE: public
+  HASURA_GRAPHQL_NO_OF_RETRIES: 10
+  # Gift alerts ride a streaming subscription over Postgres; poll it every 100ms, not 1s.
+  HASURA_GRAPHQL_STREAMING_QUERIES_MULTIPLEXED_REFETCH_INTERVAL: 100
+  PORT: 8080
+
+x-indexer-env: &indexer-env
+  ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:-}
+  ENVIO_PG_PORT: 5432
+  ENVIO_PG_USER: ${ENVIO_PG_USER:-postgres}
+  ENVIO_PG_PASSWORD: ${ENVIO_PG_PASSWORD}
+  ENVIO_PG_DATABASE: ${ENVIO_PG_DATABASE:-envio}
+  ENVIO_PG_SCHEMA: public
+  ENVIO_PG_PUBLIC_SCHEMA: public
+  ENVIO_INDEXER_HOST: 0.0.0.0
+  ENVIO_INDEXER_PORT: 9898
+  HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
+  HASURA_SERVICE_PORT: 8080
+  TUI_OFF: "true"
+  LOG_LEVEL: ${INDEXER_LOG_LEVEL:-info}
+  LOG_STRATEGY: console-pretty
+
+x-server-env: &server-env
+  RELAYER_MIN_BALANCE_MON: ${RELAYER_MIN_BALANCE_MON:-0.5}
+  MIN_GIFT_USDC: ${MIN_GIFT_USDC:-0.1}
+  RELAY_PER_MINUTE: ${RELAY_PER_MINUTE:-20}
+  HASURA_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
+  DATA_DIR: /data
+  PORT: 8787
+  TRUST_PROXY: "1"
+
+x-postgres: &postgres
+  image: postgres:17.5
+  restart: always
+  environment:
+    POSTGRES_USER: ${ENVIO_PG_USER:-postgres}
+    POSTGRES_PASSWORD: ${ENVIO_PG_PASSWORD:?set ENVIO_PG_PASSWORD}
+    POSTGRES_DB: ${ENVIO_PG_DATABASE:-envio}
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${ENVIO_PG_USER:-postgres}"]
+    interval: 5s
+    retries: 20
+
 services:
+  # ------------------------------------------------------------------ testnet (always on)
   postgres:
-    image: postgres:17.5
-    restart: always
+    <<: *postgres
     volumes:
       - pg-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: ${ENVIO_PG_USER:-postgres}
-      POSTGRES_PASSWORD: ${ENVIO_PG_PASSWORD:?set ENVIO_PG_PASSWORD}
-      POSTGRES_DB: ${ENVIO_PG_DATABASE:-envio}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${ENVIO_PG_USER:-postgres}"]
-      interval: 5s
-      retries: 20
 
   hasura:
-    image: hasura/graphql-engine:v2.43.0
-    restart: always
-    user: 1001:1001
+    <<: *hasura
     depends_on:
       postgres:
         condition: service_healthy
     environment:
+      <<: *hasura-env
       HASURA_GRAPHQL_DATABASE_URL: postgres://${ENVIO_PG_USER:-postgres}:${ENVIO_PG_PASSWORD}@postgres:5432/${ENVIO_PG_DATABASE:-envio}
-      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET:?set HASURA_ADMIN_SECRET}
-      HASURA_GRAPHQL_ENABLE_CONSOLE: "false"
-      HASURA_GRAPHQL_STRINGIFY_NUMERIC_TYPES: "true"
-      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: public
-      HASURA_GRAPHQL_NO_OF_RETRIES: 10
-      # Gift alerts ride a streaming subscription over Postgres; poll it every 100ms, not 1s.
-      HASURA_GRAPHQL_STREAMING_QUERIES_MULTIPLEXED_REFETCH_INTERVAL: 100
-      PORT: 8080
-    healthcheck:
-      test: timeout 1s bash -c ':> /dev/tcp/127.0.0.1/8080' || exit 1
-      interval: 5s
-      retries: 50
     ports:
       - "127.0.0.1:8080:8080"
 
   indexer:
-    build: ../indexer
+    build:
+      context: ../indexer
+      args:
+        NETWORK: testnet
     restart: always
     depends_on:
       hasura:
         condition: service_healthy
     environment:
-      # HyperSync answers without a token today, but Envio requires one for continued access.
-      ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:-}
+      <<: *indexer-env
       ENVIO_PG_HOST: postgres
-      ENVIO_PG_PORT: 5432
-      ENVIO_PG_USER: ${ENVIO_PG_USER:-postgres}
-      ENVIO_PG_PASSWORD: ${ENVIO_PG_PASSWORD}
-      ENVIO_PG_DATABASE: ${ENVIO_PG_DATABASE:-envio}
-      ENVIO_PG_SCHEMA: public
-      ENVIO_PG_PUBLIC_SCHEMA: public
-      ENVIO_INDEXER_HOST: 0.0.0.0
-      ENVIO_INDEXER_PORT: 9898
       HASURA_GRAPHQL_ENDPOINT: http://hasura:8080/v1/metadata
-      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
       HASURA_SERVICE_HOST: hasura
-      HASURA_SERVICE_PORT: 8080
-      TUI_OFF: "true"
-      LOG_LEVEL: ${INDEXER_LOG_LEVEL:-info}
-      LOG_STRATEGY: console-pretty
 
   server:
     build:
@@ -76,42 +102,94 @@ services:
       hasura:
         condition: service_healthy
     environment:
-      BEAM_NETWORK: ${BEAM_NETWORK:-testnet}
-      RELAYER_PRIVATE_KEY: ${RELAYER_PRIVATE_KEY:?set RELAYER_PRIVATE_KEY}
-      RELAYER_MIN_BALANCE_MON: ${RELAYER_MIN_BALANCE_MON:-0.5}
-      MIN_GIFT_USDC: ${MIN_GIFT_USDC:-0.1}
-      RELAY_PER_MINUTE: ${RELAY_PER_MINUTE:-20}
+      <<: *server-env
+      BEAM_NETWORK: testnet
+      RELAYER_PRIVATE_KEY: ${TESTNET_RELAYER_PRIVATE_KEY:-${RELAYER_PRIVATE_KEY:?set TESTNET_RELAYER_PRIVATE_KEY}}
       HASURA_URL: http://hasura:8080/v1/graphql
-      HASURA_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
-      RPC_URL: ${RPC_URL:-}
-      RPC_WS_URL: ${RPC_WS_URL:-}
-      DATA_DIR: /data
-      PUBLIC_URL: https://${DOMAIN:-localhost}
-      # Beam's Twitch chat bot (optional): app from dev.twitch.tv; admin key guards /twitch/bot/connect.
-      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
-      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
-      TWITCH_BOT_ADMIN_KEY: ${TWITCH_BOT_ADMIN_KEY:-}
-      PORT: 8787
-      TRUST_PROXY: "1"
+      RPC_URL: ${TESTNET_RPC_URL:-}
+      RPC_WS_URL: ${TESTNET_RPC_WS_URL:-}
+      PUBLIC_URL: ${TESTNET_PUBLIC_URL:-https://testnet.${DOMAIN:-localhost}}
     volumes:
       - beam-data:/data
     # Loopback only: reachable through an SSH tunnel for checks, never from the internet.
     ports:
       - "127.0.0.1:8787:8787"
 
+  # ------------------------------------------------------------------ mainnet (profile: mainnet)
+  postgres-mainnet:
+    <<: *postgres
+    profiles: ["mainnet"]
+    volumes:
+      - pg-data-mainnet:/var/lib/postgresql/data
+
+  hasura-mainnet:
+    <<: *hasura
+    profiles: ["mainnet"]
+    depends_on:
+      postgres-mainnet:
+        condition: service_healthy
+    environment:
+      <<: *hasura-env
+      HASURA_GRAPHQL_DATABASE_URL: postgres://${ENVIO_PG_USER:-postgres}:${ENVIO_PG_PASSWORD}@postgres-mainnet:5432/${ENVIO_PG_DATABASE:-envio}
+    ports:
+      - "127.0.0.1:8081:8080"
+
+  indexer-mainnet:
+    profiles: ["mainnet"]
+    build:
+      context: ../indexer
+      args:
+        NETWORK: mainnet
+    restart: always
+    depends_on:
+      hasura-mainnet:
+        condition: service_healthy
+    environment:
+      <<: *indexer-env
+      ENVIO_PG_HOST: postgres-mainnet
+      HASURA_GRAPHQL_ENDPOINT: http://hasura-mainnet:8080/v1/metadata
+      HASURA_SERVICE_HOST: hasura-mainnet
+
+  server-mainnet:
+    profiles: ["mainnet"]
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: always
+    depends_on:
+      hasura-mainnet:
+        condition: service_healthy
+    environment:
+      <<: *server-env
+      BEAM_NETWORK: mainnet
+      RELAYER_PRIVATE_KEY: ${MAINNET_RELAYER_PRIVATE_KEY:-}
+      HASURA_URL: http://hasura-mainnet:8080/v1/graphql
+      RPC_URL: ${MAINNET_RPC_URL:-}
+      RPC_WS_URL: ${MAINNET_RPC_WS_URL:-}
+      PUBLIC_URL: https://${DOMAIN:-localhost}
+      # Beam's Twitch chat bot runs here only: real gifts, one announcer.
+      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
+      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
+      TWITCH_BOT_ADMIN_KEY: ${TWITCH_BOT_ADMIN_KEY:-}
+    volumes:
+      - beam-data-mainnet:/data
+    ports:
+      - "127.0.0.1:8788:8787"
+
+  # ------------------------------------------------------------------ public HTTPS
   caddy:
     # Started once DOMAIN is set in .env (deploy/up.sh adds --profile https).
     profiles: ["https"]
     image: caddy:2.10
     restart: always
-    depends_on:
-      - server
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
     environment:
       DOMAIN: ${DOMAIN:-}
+      # Which server answers on DOMAIN: the testnet server until mainnet is deployed.
+      MAIN_UPSTREAM: ${MAIN_UPSTREAM:-server:8787}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -120,5 +198,7 @@ services:
 volumes:
   pg-data:
   beam-data:
+  pg-data-mainnet:
+  beam-data-mainnet:
   caddy-data:
   caddy-config:

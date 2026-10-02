@@ -4,9 +4,7 @@
   "type": "module",
   "scripts": {
     "config": "node scripts/write-config.mjs",
-    "codegen": "node scripts/write-config.mjs && envio codegen",
-    "dev": "node scripts/write-config.mjs && envio dev",
-    "start": "node scripts/write-config.mjs && envio start",
+    "codegen": "node scripts/write-config.mjs && cp config.${BEAM_NETWORK:-testnet}.yaml config.yaml && envio codegen",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

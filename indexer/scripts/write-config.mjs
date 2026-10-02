@@ -77,5 +77,5 @@ chains:
         start_block: ${d.BeamClaims.block}
 `;
 
-writeFileSync(join(here, "..", "config.yaml"), config);
-console.log(`config.yaml written for ${network} (chain ${d.chainId})`);
+writeFileSync(join(here, "..", `config.${network}.yaml`), config);
+console.log(`config.${network}.yaml written (chain ${d.chainId})`);

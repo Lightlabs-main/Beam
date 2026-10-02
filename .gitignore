@@ -12,3 +12,4 @@ indexer/.envio/
 deploy/.env
 indexer/envio-env.d.ts
 server/data/
+indexer/config.yaml

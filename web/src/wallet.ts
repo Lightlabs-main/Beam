@@ -19,7 +19,15 @@ import type { LocalAccount } from "viem";
  * Passkeys are bound to this relying party. The registrable domain (beamstreams.xyz) also covers
  * any subdomain, so wallets survive moving the app between subdomains or servers.
  */
-export const RP_ID = location.hostname.replace(/^www\./, "");
+/**
+ * Passkeys are bound to the registrable domain (beamstreams.xyz), which every subdomain may use:
+ * the same passkey opens the same wallet on beamstreams.xyz (mainnet) and testnet.beamstreams.xyz.
+ */
+export const RP_ID = /^(localhost|\d+\.\d+\.\d+\.\d+)$/.test(location.hostname)
+  ? location.hostname
+  : location.hostname.split(".").slice(-2).join(".");
+/** Shared by every beamstreams.xyz subdomain (localStorage is per subdomain). */
+const SHARED_COOKIE = `beam_had_wallet=1; Domain=${RP_ID}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
 const CREDENTIAL_KEY = "beam.passkey";
 const ADDRESS_KEY = "beam.address";
 /** Survives "forget this device": tells the page to look for an existing passkey before creating one. */
@@ -46,6 +54,7 @@ function walletFromPrf(prfOutput: Uint8Array): Wallet {
   try {
     localStorage.setItem(ADDRESS_KEY, account.address);
     localStorage.setItem(HAD_WALLET_KEY, "1");
+    document.cookie = SHARED_COOKIE;
   } catch {}
   return { account, end: () => session.end() };
 }
@@ -79,7 +88,7 @@ export const hasPasskeyOnDevice = () => storedCredential() !== undefined;
 /** Whether this browser has ever opened a Beam wallet (even if it was later forgotten). */
 export function everHadWallet(): boolean {
   try {
-    return localStorage.getItem(HAD_WALLET_KEY) === "1";
+    return localStorage.getItem(HAD_WALLET_KEY) === "1" || document.cookie.split("; ").includes("beam_had_wallet=1");
   } catch {
     return false;
   }

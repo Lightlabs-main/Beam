@@ -1,6 +1,13 @@
-# HTTPS (Let's Encrypt) for the gift page, overlay, API and WebSocket feed.
-# Passkeys (Mera) are bound to this domain, so it is the one address viewers use.
+# HTTPS (Let's Encrypt) for the pages, overlay, API and WebSocket feeds.
+# Passkeys (Mera) are bound to the host name, so each network keeps its own address:
+#   DOMAIN          → mainnet (MAIN_UPSTREAM; the testnet server until mainnet is deployed)
+#   testnet.DOMAIN  → testnet
 {$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy {$MAIN_UPSTREAM}
+}
+
+testnet.{$DOMAIN} {
 	encode zstd gzip
 	reverse_proxy server:8787
 }
