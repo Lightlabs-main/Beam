@@ -1,5 +1,6 @@
 import { type Address, type Chain } from "viem";
 import { monad, monadTestnet } from "viem/chains";
+import mainnet from "../../../contracts/deployments/mainnet.json" with { type: "json" };
 import testnet from "../../../contracts/deployments/testnet.json" with { type: "json" };
 
 export type Network = "testnet" | "mainnet";
@@ -14,8 +15,16 @@ export type Deployment = {
   explorer: string;
 };
 
+type DeploymentRecord = {
+  chainId: number;
+  usdc: string;
+  BeamGifts: { address: string; block: number };
+  BeamClaims: { address: string; block: number };
+  explorer: string;
+};
+
 // Only networks with a recorded deployment in contracts/deployments/ are available.
-const records: Partial<Record<Network, typeof testnet>> = { testnet };
+const records: Partial<Record<Network, DeploymentRecord>> = { testnet, mainnet };
 const chains: Record<Network, Chain> = { testnet: monadTestnet, mainnet: monad };
 
 export function deployment(network: Network): Deployment {

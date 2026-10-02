@@ -1,0 +1,16 @@
+{
+  "network": "monad-mainnet",
+  "chainId": 143,
+  "usdc": "0x754704Bc059F8C67012fEd69BC8A327a5aafb603",
+  "BeamGifts": {
+    "address": "0xbbDfDCcd88Bfdf28ba51Fc4fC13c9B0a40dfd1Db",
+    "tx": "0x2e30c371e5fd2ea06e44fc15837f48558a3d1ba8e71a247412eb7929e0cb2d96",
+    "block": 109902986
+  },
+  "BeamClaims": {
+    "address": "0xF4932F63dD5de62fDd38e11e4c6F7ecc1a63bdE2",
+    "tx": "0x7cb2452cd26473bfea9840b5e389f93049a6114939887fa3c8cf5fe87a37ae91",
+    "block": 109903002
+  },
+  "explorer": "https://monadscan.com"
+}
