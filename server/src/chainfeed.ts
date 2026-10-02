@@ -161,11 +161,26 @@ export class ChainGiftFeed extends EventEmitter<{ gift: [Gift]; claim: [ClaimEve
       onError: (e) => {
         this.setStatus("reconnecting");
         this.emit("error", e);
+        // viem reopens the socket and resubscribes by itself; on a quiet chain no log arrives to
+        // prove it, so probe the same socket until it answers again.
+        if (this.probe) return;
+        this.probe = setInterval(() => {
+          void client
+            .getBlockNumber()
+            .then(() => {
+              clearInterval(this.probe);
+              this.probe = undefined;
+              if (this.status === "reconnecting") this.setStatus("subscribed");
+            })
+            .catch(() => {});
+        }, 10_000);
       },
     });
     this.setStatus("subscribed");
     return this;
   }
+
+  private probe: ReturnType<typeof setInterval> | undefined;
 
   private setStatus(s: string) {
     this.status = s;
