@@ -84,6 +84,7 @@ async function playNext() {
   $("alert-name").textContent = nameOf(gift);
   $("alert-verb").textContent = verbOf(gift);
   $("alert-message").textContent = gift.message;
+  el.dataset.action = String(gift.actionCode || 1);
   el.classList.remove("leaving");
   el.hidden = false;
   // Re-trigger the entrance animation for back-to-back gifts.
@@ -91,9 +92,18 @@ async function playNext() {
 
   const burst = (angle: number, x: number) =>
     confettiFire({ particleCount: 140, spread: 75, startVelocity: 55, angle, origin: { x, y: 0.75 }, ticks: 260 });
-  burst(60, 0);
-  burst(120, 1);
-  setTimeout(() => confettiFire({ particleCount: 180, spread: 120, origin: { x: 0.5, y: 0.25 }, ticks: 240 }), 250);
+  if (gift.actionCode === 2) {
+    confettiFire({ particleCount: 80, spread: 55, startVelocity: 42, origin: { x: 0.5, y: 0.65 }, ticks: 180 });
+  } else if (gift.actionCode === 3 || gift.kind === "Bomb") {
+    burst(45, 0.08);
+    burst(90, 0.5);
+    burst(135, 0.92);
+    setTimeout(() => confettiFire({ particleCount: 260, spread: 160, origin: { x: 0.5, y: 0.2 }, ticks: 300 }), 220);
+  } else {
+    burst(60, 0);
+    burst(120, 1);
+    setTimeout(() => confettiFire({ particleCount: 180, spread: 120, origin: { x: 0.5, y: 0.25 }, ticks: 240 }), 250);
+  }
 
   await new Promise((r) => setTimeout(r, alertMs));
   el.classList.add("leaving");

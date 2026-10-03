@@ -97,9 +97,13 @@ async function main() {
     updateSend();
   };
 
-  // Funding: honest about timing. Card funding (Ramp) is enabled once its production key lands.
+  // Funding: manual USDC is always available; a hosted provider link appears when configured.
   $<HTMLInputElement>("fund-address").value = me;
   $("fund-copy").onclick = () => copyText(me, $("fund-copy"));
+  if (cfg.fundingUrl) {
+    $<HTMLAnchorElement>("fund-buy").href = cfg.fundingUrl.replaceAll("{address}", me);
+    $("fund-buy").hidden = false;
+  }
   $("fund-how").innerHTML =
     cfg.network === "testnet"
       ? `This is Monad testnet. Get free test USDC at <a href="https://faucet.circle.com" target="_blank" rel="noopener">faucet.circle.com</a> (choose <b>Monad Testnet</b>) and paste this address:`
@@ -180,7 +184,11 @@ async function main() {
   $<HTMLFormElement>("compose").onsubmit = async (e) => {
     e.preventDefault();
     if (send.disabled) return;
-    const meta = { displayName: nameInput.value.trim(), message: message.value.trim(), actionCode: 1 };
+    const meta = {
+      displayName: nameInput.value.trim(),
+      message: message.value.trim(),
+      actionCode: Number($<HTMLSelectElement>("action").value),
+    };
     try {
       localStorage.setItem(NAME_KEY, meta.displayName);
     } catch {}
@@ -313,4 +321,3 @@ function friendly(error: string): string {
 }
 
 main().catch((e) => showError("page-error", e instanceof Error ? e.message : String(e)));
-

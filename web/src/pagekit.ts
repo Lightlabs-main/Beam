@@ -13,6 +13,8 @@ export type ServerConfig = {
   twitchBot: { login: string } | null;
   /** Streamers can prove their Twitch channel by logging in with Twitch. */
   twitchConnect: boolean;
+  /** A configured hosted funding page, with `{address}` available as a placeholder. */
+  fundingUrl: string | null;
 };
 
 export const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;

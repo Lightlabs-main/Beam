@@ -66,8 +66,16 @@ body {
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
 }
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-weight: 800;
   margin-bottom: 8px;
+}
+.brand-mark {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 .buttons,
 .row {

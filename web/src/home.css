@@ -45,12 +45,26 @@ footer {
   justify-content: space-between;
   padding-top: 20px;
 }
+.home-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-weight: 800;
   font-size: 22px;
   letter-spacing: -0.02em;
   color: var(--ink);
   text-decoration: none;
+}
+.brand-mark {
+  width: 27px;
+  height: 27px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.28));
 }
 .net {
   font-size: 13px;

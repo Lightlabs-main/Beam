@@ -34,7 +34,7 @@ settlement:
   make a passkey wallet, and it's theirs. The crypto version of gift subs.
 - **Beam Bomb.** One link in chat; the first N chatters each claim an equal share.
 - **Instant splits.** A co-streamer, mod, editor or charity takes a defined share in the same
-  transaction (contract live and tested; creator-side setup is next).
+  transaction (contract live, tested and configurable in the creator dashboard).
 - **Gasless passkey onboarding.** Viewers and chatters never hold MON.
 - **Sub-second settlement** as the product, not a footnote.
 
@@ -83,7 +83,7 @@ Real transactions, all from wallets holding zero MON:
 | **Gasless relay** (EIP-3009) | Beam's relayer submits viewers' signed authorizations and pays the gas. |
 | **Envio** HyperIndex | Indexes every gift, drop and claim: history, goal totals, recent gifts, and a backup alert feed. |
 | **OBS browser source** | The overlay, drawn into the video, so every platform's viewers see it without platform approval. |
-| **Ramp** | Card and Apple/Google Pay funding, enabled when the production key is granted (see Status). |
+| **Funding** | Manual Monad USDC by default; an optional hosted on-ramp URL is enabled with `RAMP_URL` when provider credentials are available. |
 
 ## Architecture
 
@@ -142,7 +142,7 @@ event.
 
 - **Relayer gas.** The relayer's MON balance is an operational dependency; it refuses to sponsor
   below a floor, and `pnpm verify` fails if it gets there.
-- **Funding latency.** Card funding via Ramp takes minutes and needs a production key.
+- **Funding latency.** Hosted card funding is optional and provider-dependent; manual USDC funding is always available.
 - **Passkey support.** Wallets need a passkey provider with WebAuthn PRF (iCloud Keychain, Google
   Password Manager, 1Password). Wallets are bound to `beamstreams.xyz`; the recovery phrase is the
   backup.
@@ -152,9 +152,9 @@ event.
 
 ## Roadmap
 
-Creator dashboard (goal, splits, Gift Actions), chat `!gift` setup guides, verified gifter names via
-Twitch/YouTube connect, supporter badges and leaderboards from on-chain events, AUSD, mobile-streamer
-support, and mobile-money top-up for cash economies.
+Richer creator-defined Gift Actions, verified gifter names via Twitch/YouTube connect, supporter badges
+and leaderboards from on-chain events, AUSD, mobile-streamer support, and mobile-money top-up for cash
+economies.
 
 ## Status
 
@@ -168,7 +168,7 @@ up for trying Beam with free test USDC. Progress, next steps and blockers: [PROG
 | `contracts/` | Solidity contracts and fork tests (Foundry) |
 | `indexer/` | Envio HyperIndex |
 | `server/` | Relayer, alert feeds, API |
-| `web/` | Overlay, landing, gift, claim and wallet pages |
+| `web/` | Overlay, landing, gift, claim, wallet portfolio and earnings pages |
 | `packages/shared/` | ABIs, deployments, signing and claim-link logic shared by server and web |
 | `script/verify.ts` | `pnpm verify` |
 | `deploy/` | Docker Compose stack, Caddy, VPS scripts |

@@ -32,10 +32,18 @@ a {
   border-bottom: 1px solid var(--edge);
 }
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-weight: 800;
   font-size: 18px;
   color: var(--ink);
   text-decoration: none;
+}
+.brand-mark {
+  width: 23px;
+  height: 23px;
+  object-fit: contain;
 }
 .who {
   flex: 1;

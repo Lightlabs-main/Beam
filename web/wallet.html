@@ -10,7 +10,7 @@
   <body>
     <div class="wrap">
       <header class="top">
-        <a class="brand" href="/">Beam</a>
+        <a class="brand" href="/"><img class="brand-mark" src="/brand/beam-mark.png" alt="" /> <span>Beam</span></a>
         <span class="net" id="net" hidden></span>
       </header>
 
@@ -56,9 +56,22 @@
           <button class="ghost" id="refresh" type="button">Refresh</button>
         </section>
 
+        <section class="card">
+          <div class="section-head">
+            <div>
+              <h2>Portfolio activity</h2>
+              <p class="muted small" style="margin: 0">Every indexed gift, claim, split payment, and returned drop for this wallet.</p>
+            </div>
+            <a class="small" id="earnings" hidden>Creator view ↗</a>
+          </div>
+          <p class="error" id="activity-error" hidden></p>
+          <ul id="activity" style="list-style: none; padding: 0; margin: 12px 0 0"></ul>
+          <p class="muted small" id="activity-empty" hidden>No wallet activity yet.</p>
+        </section>
+
         <section class="card" id="drops-card" hidden>
           <h2>Gifts you sent to chatters</h2>
-          <p class="muted small">Saved on this device. Take back anything nobody has claimed; Beam pays the fee.</p>
+          <p class="muted small">Claim links are private and remain on the sending device. The on-chain drop is still recoverable here.</p>
           <ul id="drops" style="list-style: none; padding: 0; margin: 0"></ul>
         </section>
 

@@ -24,6 +24,8 @@ export type Config = {
   publicUrl: string;
   /** Beam's Twitch chat bot; null until a Twitch app is configured. */
   twitch: { clientId: string; clientSecret: string; adminKey: string } | null;
+  /** Optional hosted on-ramp URL. `{address}` is replaced with the viewer wallet. */
+  fundingUrl: string | null;
 };
 
 function required(name: string): string {
@@ -68,6 +70,7 @@ export function loadConfig(): Config {
             adminKey: process.env.TWITCH_BOT_ADMIN_KEY,
           }
         : null,
+    fundingUrl: process.env.RAMP_URL && /^https?:\/\//i.test(process.env.RAMP_URL) ? process.env.RAMP_URL : null,
     webDir: optional("WEB_DIR", new URL("../../web/dist", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")),
   };
 }

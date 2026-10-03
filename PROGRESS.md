@@ -1,6 +1,6 @@
 # Progress
 
-Last updated 2026-09-30.
+Last updated 2026-10-03.
 
 ## Done
 
@@ -13,7 +13,8 @@ Last updated 2026-09-30.
 - **Shared package** (`packages/shared`): ABIs exported from the Forge build, deployment record,
   EIP-3009 gift signing. Tests confirm nonce, USDC domain and signature acceptance on live testnet.
 - **Indexer** (`indexer/`): Envio HyperIndex v3 over all BeamGifts and BeamClaims events.
-  Config generated from the deployment record. Not yet run (Envio has no Windows build; runs on the VPS).
+  Config generated from the deployment record. Runs on the VPS and serves history, totals and wallet activity
+  to the public API (Envio has no Windows build).
 - **Server** (`server/`): gasless relayer (validate, simulate, submit; minimum gift, per-IP rate
   limit, relayer balance floor) and the indexed gift feed over WebSocket. 8 relayer tests pass
   against live testnet.
@@ -30,7 +31,8 @@ Last updated 2026-09-30.
 
 - **Viewer pages** (live): landing page with OBS link builder; gift page `/g/<creator>` (Mera passkey
   wallet, honest funding, gift the streamer or a chatter); claim page `/c/<dropId>`; wallet page
-  `/wallet` (balances, recovery phrase, take back unclaimed gifts, forget-device recovery test).
+  `/wallet` (balances, recovery phrase, indexed portfolio activity, sent-drop recovery, take-back,
+  forget-device recovery test).
 - **Gift-a-chatter via the public API**: drop, claim into a fresh wallet (0 MON), double-claim refused,
   take-back, all live (see verification).
 - **Beam Bomb** (live): one 163-character link; first chatters each claim a share; races, double
@@ -39,11 +41,13 @@ Last updated 2026-09-30.
 - **Beam Studio** `/studio`: camera behind the live overlay, recorded in the browser (no OBS needed for the video).
 - **Claims on stream**: the overlay shows when a chatter claims or a bomb share is grabbed.
 - **Earnings page** `/earnings?creator=`: balance, total received, latest gifts with the creator's share.
-  Fixed: goal totals counted whole split gifts as the creator's.
+  Fixed: goal totals counted whole split gifts as the creator's; secondary split recipients now see
+  their payout in recent history.
 - **Watch page** `/watch/<creator>`: the creator's Twitch/YouTube/Kick player, platform chat where
   embeddable, and gifting on one shareable link (stream link is part of the signed settings).
 - **Creator dashboard** `/creator`: OBS link, `!gift` command for Nightbot/StreamElements, signed
-  settings (name, goal, split shares). **Instant splits** live: one gift paid three wallets in one tx.
+  settings (name, goal, split shares). **Instant splits** live: one gift paid three wallets in one tx;
+  creator-side setup is available in the dashboard.
 - **`pnpm verify` + CI** (GitHub Actions): typecheck, live-testnet tests, verify, indexer codegen,
   Forge suite on mainnet and testnet forks. Green.
 - **README** (§11).
@@ -53,20 +57,28 @@ Last updated 2026-09-30.
   alerted on stream (tx `0x4dd6de12…a5b105`).
 - **Guided creator setup** (6 self-ticking steps), one-download OBS scene, Beam Twitch bot with
   channel-ownership proof (Connect with Twitch).
+- **Wallet portfolio**: indexed activity API combines direct gifts, split payouts, drops, claims and
+  reclaims; the wallet discovers sender drops from chain history after local storage is lost.
+- **Alert actions**: gift pages expose confetti, pulse and fireworks styles and the overlay renders
+  the signed action code.
+- **Operational hardening**: verifier selects the matching testnet/mainnet URL, health checks return
+  503 when sponsorship or feeds are unhealthy, security headers are set, Compose health checks and
+  database backup runbook are present.
 
 ## Next
 
 1. Demo video (recording runbook in docs/); real streamers.
 2. Beam Twitch bot: waiting on a Twitch app (2FA blocked the user's account; a teammate can register it).
-3. Ramp card funding when the production key arrives.
-4. Optional: Gift Actions beyond confetti (TTS, larger effects).
+3. Configure the production on-ramp URL when provider credentials arrive.
+4. Optional: TTS and richer creator-defined Gift Actions.
 
 ## Blocked / waiting on
 
-- **Ramp** production key application (§3.3): not started by the user yet as far as recorded here.
+- **Ramp** provider credentials: the code supports an optional hosted URL through `RAMP_URL`; the
+  provider account and production key are still external prerequisites.
 - **Passkey gate recover** on the user's phone (forget device → sign in with the same passkey).
 
-## Known gaps
+## Known limits
 
 - Bomb fairness: one share per wallet, but passkey wallets are free to make, so a determined person
   can take several shares. Fine for a crowd moment; not a strict one-per-human guarantee.

@@ -170,17 +170,31 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const path = url.pathname;
+    // These pages handle passkeys and recovery material. Keep the browser boundary explicit even
+    // when the process is behind Caddy, and allow the watch page's known platform frames.
+    res.setHeader("x-content-type-options", "nosniff");
+    res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
+    res.setHeader("permissions-policy", "camera=(self), microphone=(self), publickey-credentials-get=(self), publickey-credentials-create=(self)");
+    res.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains");
+    res.setHeader(
+      "content-security-policy",
+      "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https: wss:; frame-src 'self' https://player.twitch.tv https://www.twitch.tv https://www.youtube.com https://www.youtube-nocookie.com https://player.kick.com https://kick.com",
+    );
     try {
       if (req.method === "GET" && path === "/healthz") {
         const balance = await relayer.balance();
-        return json(res, 200, {
+        const relayerAboveFloor = balance >= config.relayerFloorWei;
+        const feedsConnected = indexerStatus === "connected" && ["subscribed", "connected"].includes(chain.status);
+        const healthy = relayerAboveFloor && feedsConnected;
+        return json(res, healthy ? 200 : 503, {
           network: d.network,
           chainId: d.chain.id,
           relayer: relayer.address,
           relayerBalanceWei: balance,
-          relayerAboveFloor: balance >= config.relayerFloorWei,
+          relayerAboveFloor,
           indexer: indexerStatus,
           chainPush: chain.status,
+          healthy,
           twitchBot: bot ? bot.status : "not configured",
         });
       }
@@ -240,6 +254,7 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
           twitchBot: bot?.auth.login ? { login: bot.auth.login } : null,
           // Connect Twitch works as soon as the Twitch app is configured, even before the bot is.
           twitchConnect: !!bot,
+          fundingUrl: config.fundingUrl,
         });
       }
       if (req.method === "POST" && path === "/api/relay/gift") {
@@ -307,6 +322,12 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
       const accountRoute = /^\/api\/accounts\/(0x[0-9a-fA-F]{40})$/.exec(path);
       if (req.method === "GET" && accountRoute) {
         return json(res, 200, await relayer.balances(accountRoute[1] as `0x${string}`));
+      }
+      const activityRoute = /^\/api\/accounts\/(0x[0-9a-fA-F]{40})\/activity$/.exec(path);
+      if (req.method === "GET" && activityRoute) {
+        const limitRaw = Number(url.searchParams.get("limit") ?? 100);
+        const limit = Number.isInteger(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 100;
+        return json(res, 200, { activity: await indexed.accountActivity(activityRoute[1]!, limit) });
       }
       const creatorRoute = /^\/api\/creators\/(0x[0-9a-fA-F]{40})\/(gifts|total)$/.exec(path);
       if (req.method === "GET" && creatorRoute) {

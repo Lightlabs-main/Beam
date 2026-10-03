@@ -56,6 +56,12 @@ body {
 .alert.leaving {
   animation: alert-out 360ms ease-in both;
 }
+.alert[data-action="2"] {
+  box-shadow: var(--shadow), 0 0 0 4px rgba(34, 211, 238, 0.38);
+}
+.alert[data-action="3"] {
+  box-shadow: var(--shadow), 0 0 0 4px rgba(236, 72, 153, 0.42);
+}
 .alert-amount {
   font-size: 104px;
   font-weight: 800;

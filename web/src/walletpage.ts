@@ -1,8 +1,31 @@
-// Wallet page (/wallet): the passkey gate in the open. Create or recover, see balances, back up.
+// Wallet page (/wallet): the passkey gate in the open. Create or recover, see balances and the
+// complete indexed activity for this address, back up, and manage claimable drops.
 import { signReclaim, usdLabel } from "@beam/shared";
 import { formatEther } from "viem";
-import { $, balances, copyText, loadConfig, sentDrops, signInCard } from "./pagekit.js";
+import { $, balances, copyText, loadConfig, sentDrops, short, signInCard } from "./pagekit.js";
 import { forgetDevice, passkeyErrorMessage, revealRecoveryPhrase } from "./wallet.js";
+
+type Activity = {
+  id: string;
+  kind: "received" | "sent" | "claimed" | "reclaimed";
+  giftKind: "Direct" | "Split" | "Chatter" | "Bomb" | "Claim" | "Reclaim";
+  amount: string;
+  displayName: string;
+  message: string;
+  ts: string;
+  txHash: string;
+  counterpart: string | null;
+  dropId: string | null;
+  status: "settled" | "pending" | "refunded";
+};
+
+function ago(ts: number): string {
+  const seconds = Math.max(0, Math.floor(Date.now() / 1000 - ts));
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} h ago`;
+  return new Date(ts * 1000).toLocaleDateString();
+}
 
 async function main() {
   const { d } = await loadConfig();
@@ -14,24 +37,90 @@ async function main() {
   $<HTMLInputElement>("address").value = me;
   $("copy").onclick = () => copyText(me, $("copy"));
   $<HTMLAnchorElement>("explorer").href = `${d.explorer}/address/${me}`;
+  $<HTMLAnchorElement>("earnings").href = `/earnings?creator=${me}`;
+  $("earnings").hidden = false;
 
-  const refresh = async () => {
+  let activity: Activity[] = [];
+
+  const refreshBalances = async () => {
     const b = await balances(me);
     $("usdc").textContent = usdLabel(b.usdc);
     $("mon").textContent = formatEther(b.mon);
   };
-  $("refresh").onclick = () => void refresh();
-  await refresh();
 
-  await renderDrops();
+  const refreshActivity = async () => {
+    const res = await fetch(`/api/accounts/${me}/activity?limit=100`);
+    if (!res.ok) throw new Error(`activity lookup failed (${res.status})`);
+    activity = ((await res.json()) as { activity: Activity[] }).activity;
+    renderActivity();
+    await renderDrops();
+  };
+
+  function renderActivity() {
+    $("activity-error").hidden = true;
+    $("activity-empty").hidden = activity.length !== 0;
+    $("activity").replaceChildren(
+      ...activity.map((row) => {
+        const li = document.createElement("li");
+        li.className = "chip";
+        li.style.marginTop = "8px";
+        const left = document.createElement("div");
+        left.style.minWidth = "0";
+        const title = document.createElement("div");
+        title.style.fontWeight = "700";
+        const verb = row.kind === "received" ? "Received" : row.kind === "claimed" ? "Claimed" : row.kind === "reclaimed" ? "Returned" : "Sent";
+        const type = row.giftKind === "Claim" ? "gift claim" : row.giftKind === "Reclaim" ? "drop" : `${row.giftKind.toLowerCase()} gift`;
+        title.textContent = `${verb} ${type}`;
+        const meta = document.createElement("div");
+        meta.className = "muted small";
+        meta.style.overflowWrap = "anywhere";
+        const detail = row.displayName || (row.counterpart && /^0x[0-9a-fA-F]{40}$/.test(row.counterpart) ? short(row.counterpart) : "");
+        meta.textContent = [detail, row.message && `“${row.message}”`, ago(Number(row.ts))].filter(Boolean).join(" · ");
+        left.append(title, meta);
+        const right = document.createElement("a");
+        right.href = `${d.explorer}/tx/${row.txHash}`;
+        right.target = "_blank";
+        right.rel = "noopener";
+        right.className = "bal";
+        right.style.fontSize = "18px";
+        right.style.textDecoration = "none";
+        right.textContent = `${row.kind === "sent" ? "−" : "+"}${usdLabel(BigInt(row.amount))}`;
+        li.append(left, right);
+        return li;
+      }),
+    );
+  }
+
+  await refreshBalances();
+  await refreshActivity().catch((e) => {
+    $("activity-error").textContent = e instanceof Error ? e.message : String(e);
+    $("activity-error").hidden = false;
+  });
+  $("refresh").onclick = () => void Promise.all([refreshBalances(), refreshActivity()]);
+  setInterval(() => void Promise.all([refreshBalances(), refreshActivity()]).catch(() => {}), 10_000);
 
   async function renderDrops() {
-    const mine = sentDrops();
+    const local = sentDrops();
+    const known = new Map(local.map((s) => [s.dropId.toLowerCase(), s]));
+    for (const row of activity) {
+      if (row.kind !== "sent" || !row.dropId || known.has(row.dropId.toLowerCase())) continue;
+      known.set(row.dropId.toLowerCase(), {
+        dropId: row.dropId,
+        link: "",
+        label: row.giftKind === "Bomb" ? "chatters" : "chatter",
+        amount: row.amount,
+        channel: "",
+        createdAt: Number(row.ts) * 1000,
+      });
+    }
+    const mine = [...known.values()];
     $("drops-card").hidden = mine.length === 0;
     const rows = await Promise.all(
       mine.map(async (s) => {
         const r = await fetch(`/api/drops/${s.dropId}?slot=0`);
-        const info = r.ok ? ((await r.json()) as { sender: string; closed: boolean; expired: boolean; claimed: number; remaining: string }) : null;
+        const info = r.ok
+          ? ((await r.json()) as { sender: string; closed: boolean; expired: boolean; claimed: number; remaining: string })
+          : null;
         return { s, info };
       }),
     );
@@ -59,16 +148,20 @@ async function main() {
                 : "Waiting to be claimed";
         left.append(title, state);
         li.append(left);
-
         const actions = document.createElement("div");
         actions.style.display = "flex";
         actions.style.gap = "6px";
-        if (info && !info.closed && info.claimed === 0) {
+        if (info && !info.closed && info.claimed === 0 && s.link) {
           const copy = document.createElement("button");
           copy.className = "inline ghost";
           copy.textContent = "Copy link";
           copy.onclick = () => copyText(s.link, copy);
           actions.append(copy);
+        } else if (info && !info.closed && info.claimed === 0 && !s.link) {
+          const note = document.createElement("span");
+          note.className = "muted small";
+          note.textContent = "Link is on the sending device";
+          actions.append(note);
         }
         if (canReclaim) {
           const back = document.createElement("button");
@@ -87,7 +180,7 @@ async function main() {
               });
               const body = (await r.json()) as { error?: string };
               if (!r.ok) throw new Error(body.error ?? `failed (${r.status})`);
-              await Promise.all([refresh(), renderDrops()]);
+              await Promise.all([refreshBalances(), refreshActivity()]);
             } catch (e) {
               state.textContent = e instanceof Error ? e.message : String(e);
               back.disabled = false;

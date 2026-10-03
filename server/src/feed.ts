@@ -26,6 +26,21 @@ export type Gift = {
   payouts?: { recipient: string; amount: string }[];
 };
 
+/** A wallet-centric row assembled from the indexed on-chain entities. */
+export type AccountActivity = {
+  id: string;
+  kind: "received" | "sent" | "claimed" | "reclaimed";
+  giftKind: Gift["kind"] | "Claim" | "Reclaim";
+  amount: string;
+  displayName: string;
+  message: string;
+  ts: string;
+  txHash: string;
+  counterpart: string | null;
+  dropId: string | null;
+  status: "settled" | "pending" | "refunded";
+};
+
 const GIFT_FIELDS = `id seq kind from channel to amount displayName message actionCode dropId recipientLabel slots ts blockNumber txHash`;
 
 // Hasura returns numeric columns as numbers or strings depending on its settings; normalise.
@@ -91,27 +106,146 @@ export class Indexed {
   async earnings(creator: string, limit: number) {
     type Agg = { aggregate: { count: number; sum: { amount: string | number | null } } };
     const c = creator.toLowerCase();
-    const data = await this.query<{
+    const summary = await this.query<{
       direct: Agg;
       shares: Agg;
-      gifts: Record<string, unknown>[];
       payouts: { giftId: string; amount: string | number }[];
     }>(
-      `query ($c: String!, $limit: Int!) {
+      `query ($c: String!) {
         direct: Gift_aggregate(where: { to: { _eq: $c }, kind: { _eq: "Direct" } }) { aggregate { count sum { amount } } }
         shares: SplitPayout_aggregate(where: { recipient: { _eq: $c } }) { aggregate { count sum { amount } } }
-        gifts: Gift(where: { to: { _eq: $c } }, order_by: { seq: desc }, limit: $limit) { ${GIFT_FIELDS} }
-        payouts: SplitPayout(where: { recipient: { _eq: $c } }, order_by: { ts: desc }, limit: $limit) { giftId amount }
+        payouts: SplitPayout(where: { recipient: { _eq: $c } }, order_by: { ts: desc }, limit: 100) { giftId amount }
+      }`,
+      { c },
+    );
+    const data = await this.query<{ gifts: Record<string, unknown>[] }>(
+      `query ($c: String!, $ids: [ID!]!, $limit: Int!) {
+        gifts: Gift(where: { _or: [{ to: { _eq: $c } }, { id: { _in: $ids } }] }, order_by: { seq: desc }, limit: $limit) { ${GIFT_FIELDS} }
+      }`,
+      { c, ids: summary.payouts.map((p) => p.giftId), limit },
+    );
+    const n = (a: Agg) => (a.aggregate.sum.amount === null ? 0n : BigInt(String(a.aggregate.sum.amount)));
+    const share = new Map(summary.payouts.map((p) => [p.giftId, String(p.amount)]));
+    return {
+      total: n(summary.direct) + n(summary.shares),
+      gifts: summary.direct.aggregate.count + summary.shares.aggregate.count,
+      recent: data.gifts.map(normalise).map((g) => ({ ...g, received: g.kind === "Split" ? (share.get(g.id) ?? null) : g.amount })),
+    };
+  }
+
+  /**
+   * A wallet's complete indexed activity. This is deliberately assembled from event entities so
+   * it remains useful for passkey wallets that have no account or session on the server.
+   */
+  async accountActivity(address: string, limit: number): Promise<AccountActivity[]> {
+    const c = address.toLowerCase();
+    type Row = Record<string, unknown>;
+    const data = await this.query<{
+      gifts: Row[];
+      payouts: Row[];
+      claims: Row[];
+      reclaims: Row[];
+    }>(
+      `query ($c: String!, $limit: Int!) {
+        gifts: Gift(where: { _or: [{ from: { _eq: $c } }, { to: { _eq: $c } }] }, order_by: { seq: desc }, limit: $limit) { ${GIFT_FIELDS} }
+        payouts: SplitPayout(where: { recipient: { _eq: $c } }, order_by: { ts: desc }, limit: $limit) { id giftId amount from ts txHash }
+        claims: Claim(where: { recipient: { _eq: $c } }, order_by: { seq: desc }, limit: $limit) { id dropId amount slot ts txHash }
+        reclaims: Reclaim(where: { sender: { _eq: $c } }, order_by: { ts: desc }, limit: $limit) { id dropId amount expired ts txHash }
       }`,
       { c, limit },
     );
-    const n = (a: Agg) => (a.aggregate.sum.amount === null ? 0n : BigInt(String(a.aggregate.sum.amount)));
-    const share = new Map(data.payouts.map((p) => [p.giftId, String(p.amount)]));
-    return {
-      total: n(data.direct) + n(data.shares),
-      gifts: data.direct.aggregate.count + data.shares.aggregate.count,
-      recent: data.gifts.map(normalise).map((g) => ({ ...g, received: g.kind === "Split" ? (share.get(g.id) ?? null) : g.amount })),
-    };
+    const gifts = data.gifts.map(normalise);
+    const byId = new Map(gifts.map((g) => [g.id, g]));
+    const missingGiftIds = [...new Set(data.payouts.map((p) => String(p.giftId)).filter((id) => !byId.has(id)))];
+    if (missingGiftIds.length) {
+      const extra = await this.query<{ gifts: Row[] }>(
+        `query ($ids: [ID!]!) {
+          gifts: Gift(where: { id: { _in: $ids } }) { ${GIFT_FIELDS} }
+        }`,
+        { ids: missingGiftIds },
+      );
+      for (const gift of extra.gifts.map(normalise)) byId.set(gift.id, gift);
+    }
+    const out: AccountActivity[] = [];
+    for (const g of gifts) {
+      const isSent = g.from.toLowerCase() === c && g.to?.toLowerCase() !== c;
+      if (isSent) {
+        out.push({
+          id: g.id,
+          kind: "sent",
+          giftKind: g.kind,
+          amount: g.amount,
+          displayName: g.displayName,
+          message: g.message,
+          ts: g.ts,
+          txHash: g.txHash,
+          counterpart: g.channel,
+          dropId: g.dropId,
+          status: g.kind === "Chatter" || g.kind === "Bomb" ? "pending" : "settled",
+        });
+      } else if (g.kind === "Direct" && g.to?.toLowerCase() === c) {
+        out.push({
+          id: g.id,
+          kind: "received",
+          giftKind: g.kind,
+          amount: g.amount,
+          displayName: g.displayName,
+          message: g.message,
+          ts: g.ts,
+          txHash: g.txHash,
+          counterpart: g.from,
+          dropId: null,
+          status: "settled",
+        });
+      }
+    }
+    for (const p of data.payouts) {
+      const gift = byId.get(String(p.giftId));
+      out.push({
+        id: String(p.id),
+        kind: "received",
+        giftKind: "Split",
+        amount: String(p.amount),
+        displayName: gift?.displayName ?? "Split gift",
+        message: gift?.message ?? "",
+        ts: String(p.ts),
+        txHash: String(p.txHash),
+        counterpart: String(p.from),
+        dropId: null,
+        status: "settled",
+      });
+    }
+    for (const claim of data.claims) {
+      out.push({
+        id: String(claim.id),
+        kind: "claimed",
+        giftKind: "Claim",
+        amount: String(claim.amount),
+        displayName: "Beam claim",
+        message: "",
+        ts: String(claim.ts),
+        txHash: String(claim.txHash),
+        counterpart: null,
+        dropId: String(claim.dropId),
+        status: "settled",
+      });
+    }
+    for (const reclaim of data.reclaims) {
+      out.push({
+        id: String(reclaim.id),
+        kind: "reclaimed",
+        giftKind: "Reclaim",
+        amount: String(reclaim.amount),
+        displayName: "Returned drop",
+        message: "",
+        ts: String(reclaim.ts),
+        txHash: String(reclaim.txHash),
+        counterpart: null,
+        dropId: String(reclaim.dropId),
+        status: "refunded",
+      });
+    }
+    return out.sort((a, b) => Number(BigInt(b.ts) - BigInt(a.ts))).slice(0, limit);
   }
 
   async latestSeq(): Promise<string> {

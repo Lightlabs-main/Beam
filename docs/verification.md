@@ -231,6 +231,10 @@ push labelled that split "Direct". Logs are now grouped per transaction for 60 m
 
 ## Not yet verified
 
-- Split gifts, claims, reclaims and bombs against the live deployment (covered by fork tests only).
-- Any mainnet transaction.
-- Mera passkey signing on a real device.
+- Split gifts, claims, reclaims and bombs against the mainnet deployment (covered by testnet live
+  flows and fork tests).
+- Mera passkey recovery after forgetting a device on a second real device.
+
+The first direct mainnet gift is verified above. The default verifier selects
+`https://testnet.beamstreams.xyz` for testnet and `https://beamstreams.xyz` for mainnet; run both
+before a release.

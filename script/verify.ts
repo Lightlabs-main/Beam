@@ -1,7 +1,7 @@
 // pnpm verify: asserts every dependency Beam is built on against live Monad and the live service.
 // Exits non-zero if any check fails. Runs in CI and before every deploy.
 //
-//   pnpm verify                         # testnet + https://beamstreams.xyz
+//   pnpm verify                         # testnet + https://testnet.beamstreams.xyz
 //   BEAM_NETWORK=mainnet BEAM_URL=... pnpm verify
 import {
   DropKind,
@@ -18,7 +18,7 @@ import { type Address, createPublicClient, domainSeparator, http } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 const d = deployment(parseNetwork(process.env.BEAM_NETWORK ?? "testnet"));
-const base = process.env.BEAM_URL ?? "https://beamstreams.xyz";
+const base = process.env.BEAM_URL ?? (d.network === "testnet" ? "https://testnet.beamstreams.xyz" : "https://beamstreams.xyz");
 const client = createPublicClient({ chain: d.chain, transport: http(process.env.RPC_URL) });
 const HYPERSYNC: Record<string, string> = { testnet: "https://10143.hypersync.xyz", mainnet: "https://143.hypersync.xyz" };
 

@@ -43,6 +43,7 @@ x-server-env: &server-env
   RELAYER_MIN_BALANCE_MON: ${RELAYER_MIN_BALANCE_MON:-0.5}
   MIN_GIFT_USDC: ${MIN_GIFT_USDC:-0.1}
   RELAY_PER_MINUTE: ${RELAY_PER_MINUTE:-20}
+  RAMP_URL: ${RAMP_URL:-}
   HASURA_ADMIN_SECRET: ${HASURA_ADMIN_SECRET}
   DATA_DIR: /data
   PORT: 8787
@@ -114,6 +115,11 @@ services:
     # Loopback only: reachable through an SSH tunnel for checks, never from the internet.
     ports:
       - "127.0.0.1:8787:8787"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   # ------------------------------------------------------------------ mainnet (profile: mainnet)
   postgres-mainnet:
@@ -175,6 +181,11 @@ services:
       - beam-data-mainnet:/data
     ports:
       - "127.0.0.1:8788:8787"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8787/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   # ------------------------------------------------------------------ public HTTPS
   caddy:
