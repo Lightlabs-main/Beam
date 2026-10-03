@@ -1,0 +1,57 @@
+/* Used on the landing page and the creator setup page, which have different stylesheets. */
+.obs-connect {
+  margin-top: 12px;
+}
+.obs-connect .obs-go {
+  margin-top: 0;
+}
+.obs-connect p,
+.obs-connect ol {
+  font-size: 14px;
+  color: rgba(244, 243, 250, 0.72);
+  margin: 8px 0 0;
+}
+.obs-connect ol {
+  padding-left: 20px;
+}
+.obs-connect b {
+  color: #f4f3fa;
+}
+.obs-connect .obs-help,
+.obs-connect .obs-pass {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.obs-connect .obs-help p:first-child {
+  margin-top: 0;
+}
+.obs-connect label {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  color: #f4f3fa;
+}
+.obs-connect input {
+  margin-top: 8px;
+}
+.obs-connect .obs-msg {
+  font-weight: 600;
+  color: #ff7a8a;
+}
+.obs-connect .obs-msg.ok {
+  color: #3ddc97;
+}
+.obs-connect .obs-drag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 4px 10px;
+  border: 1px dashed rgba(124, 92, 255, 0.8);
+  border-radius: 8px;
+  color: #f4f3fa;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: grab;
+}

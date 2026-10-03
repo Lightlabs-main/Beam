@@ -1,6 +1,7 @@
 // Landing page: builds a creator's OBS overlay URL locally from their wallet address.
 import { parseUsdc } from "@beam/shared";
 import { downloadObsSetup } from "./obs.js";
+import { mountObsConnect } from "./obsconnect.js";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const isAddress = (a: string) => /^0x[0-9a-fA-F]{40}$/.test(a);
@@ -54,6 +55,7 @@ $<HTMLFormElement>("setup").addEventListener("submit", (e) => {
   $<HTMLInputElement>("url").value = url;
   $<HTMLAnchorElement>("preview").href = url;
   $("obs-download").onclick = () => downloadObsSetup(url);
+  mountObsConnect($("obs-connect"), url);
   $("goal-note").hidden = !goalRaw;
   $("result").hidden = false;
   $("result").scrollIntoView({ behavior: "smooth", block: "nearest" });

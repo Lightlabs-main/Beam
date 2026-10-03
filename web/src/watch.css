@@ -99,6 +99,21 @@ a {
   padding: 16px;
   color: var(--soft);
   background: radial-gradient(600px 300px at 70% 20%, #1d1a35, #0b0a14);
+  align-content: center;
+  gap: 12px;
+}
+.offline p {
+  margin: 0;
+  max-width: 34em;
+}
+.watch-out {
+  display: inline-block;
+  padding: 12px 20px;
+  border-radius: 14px;
+  font-weight: 800;
+  color: #fff;
+  text-decoration: none;
+  background: linear-gradient(90deg, var(--accent), #5b8cff);
 }
 .external {
   margin: 8px 16px;

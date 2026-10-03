@@ -50,6 +50,12 @@ describe("stream links", () => {
     });
     assert.equal(parseStreamLink("twitch", "not a channel!"), null);
     assert.equal(parseStreamLink("youtube", "https://www.youtube.com/@somehandle"), null);
+    assert.deepEqual(parseStreamLink("x", "https://x.com/tunde_live"), { platform: "x", channel: "tunde_live" });
+    assert.deepEqual(parseStreamLink("x", "twitter.com/tunde_live/status/123"), { platform: "x", channel: "tunde_live" });
+    assert.deepEqual(parseStreamLink("x", "@tunde_live"), { platform: "x", channel: "tunde_live" });
+    // A broadcast link changes every stream; only the username is kept.
+    assert.equal(parseStreamLink("x", "https://x.com/i/broadcasts/1YqKDqLqXyz"), null);
+    assert.equal(parseStreamLink("x", "much_too_long_for_x"), null);
   });
 
   it("keeps settings signed before streams existed valid, and signs the stream when set", async () => {

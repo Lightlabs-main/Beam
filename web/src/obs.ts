@@ -130,3 +130,174 @@ export function downloadObsSetup(overlayUrl: string) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
 }
+
+// ------------------------------------------------------------------ one click: OBS's own WebSocket
+// OBS 28+ ships obs-websocket (protocol v5). The page talks to it on this computer and adds the
+// overlay to whatever scene is live, so a streamer keeps their own scenes.
+
+export const OBS_PORT = 4455;
+export const OVERLAY_NAME = "Beam overlay";
+
+/** Why connecting failed, in words a streamer can act on. */
+export class ObsError extends Error {
+  constructor(
+    readonly reason: "unreachable" | "blocked" | "password" | "other",
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+type Status = { result: boolean; code: number; comment?: string };
+type Response = { requestId: string; requestStatus: Status; responseData?: Record<string, unknown> };
+
+const sha256b64 = async (s: string) =>
+  btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))));
+
+class ObsSocket {
+  private pending = new Map<string, (r: Response) => void>();
+  private next = 0;
+
+  private constructor(private readonly ws: WebSocket) {
+    ws.addEventListener("message", (e) => {
+      const m = JSON.parse(String(e.data)) as { op: number; d: Response };
+      if (m.op === 7) this.pending.get(m.d.requestId)?.(m.d);
+    });
+  }
+
+  /** Opens and identifies; `password` is only needed when OBS has authentication on. */
+  static open(password: string, port = OBS_PORT): Promise<ObsSocket> {
+    return new Promise((resolve, reject) => {
+      let ws: WebSocket;
+      try {
+        ws = new WebSocket(`ws://127.0.0.1:${port}`);
+      } catch {
+        // Safari refuses ws:// from an https page outright.
+        return reject(new ObsError("blocked", "This browser won't let a web page talk to OBS. Use Chrome, Edge or Firefox, or the setup file below."));
+      }
+      let identified = false;
+      const timer = setTimeout(() => {
+        ws.close();
+        reject(new ObsError("unreachable", "OBS didn't answer."));
+      }, 8000);
+      ws.addEventListener("message", async (e) => {
+        const m = JSON.parse(String(e.data)) as { op: number; d: { authentication?: { challenge: string; salt: string } } };
+        if (m.op === 0) {
+          const a = m.d.authentication;
+          if (a && !password) {
+            clearTimeout(timer);
+            ws.close();
+            return reject(new ObsError("password", "OBS needs its WebSocket password."));
+          }
+          const authentication = a ? await sha256b64((await sha256b64(password + a.salt)) + a.challenge) : undefined;
+          ws.send(JSON.stringify({ op: 1, d: { rpcVersion: 1, authentication, eventSubscriptions: 0 } }));
+        } else if (m.op === 2) {
+          identified = true;
+          clearTimeout(timer);
+          resolve(new ObsSocket(ws));
+        }
+      });
+      ws.addEventListener("close", (e) => {
+        clearTimeout(timer);
+        if (identified) return;
+        if (e.code === 4009) reject(new ObsError("password", "That password didn't work. Copy it again from OBS."));
+        else reject(new ObsError("unreachable", "Couldn't reach OBS on this computer."));
+      });
+    });
+  }
+
+  async call<T = Record<string, unknown>>(requestType: string, requestData: Record<string, unknown> = {}): Promise<T> {
+    const r = await this.callRaw(requestType, requestData);
+    if (!r.requestStatus.result) throw new ObsError("other", `OBS said: ${r.requestStatus.comment ?? requestType} (${r.requestStatus.code})`);
+    return (r.responseData ?? {}) as T;
+  }
+
+  callRaw(requestType: string, requestData: Record<string, unknown> = {}): Promise<Response> {
+    const requestId = String(++this.next);
+    return new Promise((resolve) => {
+      this.pending.set(requestId, (r) => {
+        this.pending.delete(requestId);
+        resolve(r);
+      });
+      this.ws.send(JSON.stringify({ op: 6, d: { requestType, requestId, requestData } }));
+    });
+  }
+
+  close() {
+    this.ws.close();
+  }
+}
+
+const NOT_FOUND = 600;
+const ALREADY_EXISTS = 601;
+
+/**
+ * Puts the Beam overlay on top of OBS's live scene, scaled to the canvas and locked. Running it
+ * again updates the existing "Beam overlay" source rather than adding a second one.
+ * Returns the scene's name.
+ */
+export async function addOverlayToObs(overlayUrl: string, password: string, port = OBS_PORT): Promise<string> {
+  const obs = await ObsSocket.open(password, port);
+  try {
+    const live = await obs.call<{ currentProgramSceneName?: string; sceneName?: string }>("GetCurrentProgramScene");
+    const sceneName = live.sceneName ?? live.currentProgramSceneName!;
+    const inputSettings = { url: overlayUrl, width: 1920, height: 1080, reroute_audio: false };
+
+    const created = await obs.callRaw("CreateInput", { sceneName, inputName: OVERLAY_NAME, inputKind: "browser_source", inputSettings, sceneItemEnabled: true });
+    let sceneItemId: number;
+    if (created.requestStatus.result) {
+      sceneItemId = created.responseData!.sceneItemId as number;
+    } else if (created.requestStatus.code === ALREADY_EXISTS) {
+      // Set up before (this button or the setup file): point it at this overlay and make sure it's in the live scene.
+      const { inputKind } = await obs.call<{ inputKind: string }>("GetInputSettings", { inputName: OVERLAY_NAME });
+      if (inputKind !== "browser_source") throw new ObsError("other", `OBS already has a source called "${OVERLAY_NAME}" that isn't a browser source. Rename it and try again.`);
+      await obs.call("SetInputSettings", { inputName: OVERLAY_NAME, inputSettings, overlay: true });
+      const found = await obs.callRaw("GetSceneItemId", { sceneName, sourceName: OVERLAY_NAME });
+      if (found.requestStatus.result) sceneItemId = found.responseData!.sceneItemId as number;
+      else if (found.requestStatus.code === NOT_FOUND) sceneItemId = (await obs.call<{ sceneItemId: number }>("CreateSceneItem", { sceneName, sourceName: OVERLAY_NAME })).sceneItemId;
+      else throw new ObsError("other", `OBS said: ${found.requestStatus.comment ?? "GetSceneItemId"}`);
+      await obs.call("SetSceneItemEnabled", { sceneName, sceneItemId, sceneItemEnabled: true });
+    } else {
+      throw new ObsError("other", `OBS said: ${created.requestStatus.comment ?? "CreateInput"} (${created.requestStatus.code})`);
+    }
+
+    // On top of everything, filling the canvas whatever its size or shape, and locked in place.
+    const { sceneItems } = await obs.call<{ sceneItems: unknown[] }>("GetSceneItemList", { sceneName });
+    await obs.call("SetSceneItemIndex", { sceneName, sceneItemId, sceneItemIndex: sceneItems.length - 1 });
+    const { baseWidth, baseHeight } = await obs.call<{ baseWidth: number; baseHeight: number }>("GetVideoSettings");
+    await obs.call("SetSceneItemLocked", { sceneName, sceneItemId, sceneItemLocked: false });
+    await obs.call("SetSceneItemTransform", {
+      sceneName,
+      sceneItemId,
+      sceneItemTransform: {
+        positionX: 0,
+        positionY: 0,
+        rotation: 0,
+        alignment: 5,
+        boundsType: "OBS_BOUNDS_SCALE_INNER",
+        boundsAlignment: 0,
+        boundsWidth: baseWidth,
+        boundsHeight: baseHeight,
+        cropLeft: 0,
+        cropRight: 0,
+        cropTop: 0,
+        cropBottom: 0,
+      },
+    });
+    await obs.call("SetSceneItemLocked", { sceneName, sceneItemId, sceneItemLocked: true });
+    return sceneName;
+  } finally {
+    obs.close();
+  }
+}
+
+/**
+ * The overlay link to drag straight onto OBS's preview: OBS turns a dropped link into a browser
+ * source sized to the canvas and named by `layer-name`. OBS removes the layer-* parameters; the
+ * overlay ignores them anyway.
+ */
+export function obsDropUrl(overlayUrl: string): string {
+  const u = new URL(overlayUrl);
+  u.searchParams.set("layer-name", OVERLAY_NAME);
+  return u.toString();
+}

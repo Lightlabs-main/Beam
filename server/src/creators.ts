@@ -14,7 +14,7 @@ const configBody = z.object({
     displayName: z.string(),
     goal: z.object({ usdc: z.string(), title: z.string(), since: z.number().int() }).nullable(),
     shares: z.array(z.object({ address, bps: z.number().int(), label: z.string() })).max(9),
-    stream: z.object({ platform: z.enum(["twitch", "youtube", "kick"]), channel: z.string().max(64) }).nullable().optional(),
+    stream: z.object({ platform: z.enum(["twitch", "youtube", "kick", "x"]), channel: z.string().max(64) }).nullable().optional(),
     chatBot: z.boolean().optional(),
     updatedAt: z.number().int(),
   }),

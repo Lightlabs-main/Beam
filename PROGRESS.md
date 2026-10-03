@@ -61,6 +61,11 @@ Last updated 2026-10-03.
   reclaims; the wallet discovers sender drops from chain history after local storage is lost.
 - **Alert actions**: gift pages expose confetti, pulse and fireworks styles and the overlay renders
   the signed action code.
+- **One-click OBS** (2026-10-03): "Connect OBS" on `/creator` and the home page adds the overlay to the
+  live scene over OBS's built-in WebSocket (on top, scaled to the canvas, locked; re-running updates it).
+  Password asked only when OBS uses one. Drag-the-link and the scene-file download remain as fallbacks.
+- **X streams** (2026-10-03): X is a stream platform in creator settings (username); the watch page links
+  out to X for video and chat; setup step 4 gives a pinned-reply post instead of a bot.
 - **Operational hardening**: verifier selects the matching testnet/mainnet URL, health checks return
   503 when sponsorship or feeds are unhealthy, security headers are set, Compose health checks and
   database backup runbook are present.

@@ -16,6 +16,7 @@ import {
 } from "@beam/shared";
 import { type Address, getAddress, isAddress } from "viem";
 import { downloadObsSetup } from "./obs.js";
+import { mountObsConnect } from "./obsconnect.js";
 import { $, balances, copyText, loadConfig, randomSalt, short, signInCard } from "./pagekit.js";
 
 const STREAM_HELP: Record<StreamLink["platform"], [string, string, string]> = {
@@ -26,6 +27,7 @@ const STREAM_HELP: Record<StreamLink["platform"], [string, string, string]> = {
     "https://youtube.com/watch?v=… or UC…",
     "Paste the link of your live video, or your channel ID (YouTube Studio → Settings → Channel → Advanced; it starts with UC).",
   ],
+  x: ["X username", "tunde_live", "Your username, or paste your x.com profile link (not a broadcast link: those change every stream)."],
 };
 
 const local = {
@@ -67,6 +69,8 @@ async function main() {
   $("gift-copy").onclick = () => copyText(giftUrl, $("gift-copy"));
   $("watch-copy").onclick = () => copyText(watchUrl, $("watch-copy"));
   $("nightbot-copy").onclick = () => copyText($<HTMLInputElement>("nightbot").value, $("nightbot-copy"));
+  $<HTMLInputElement>("x-post").value = `🎁 Send me a gift that pops up live on stream (no app or crypto needed): ${giftUrl}`;
+  $("x-post-copy").onclick = () => copyText($<HTMLInputElement>("x-post").value, $("x-post-copy"));
 
   let provenTwitch: string | null = null;
 
@@ -118,6 +122,7 @@ async function main() {
     mark("step-chat", done.chat(), 4);
     mark("step-test", done.test(), 5);
     mark("step-share", done.channel() && done.obs, 6);
+    $("obs-x").hidden = saved?.stream?.platform !== "x";
     const count = 1 + [done.channel(), done.obs, done.chat(), done.test(), done.channel() && done.obs].filter(Boolean).length;
     $("progress").textContent = count >= 6 ? "All set. Go live! 🎉" : `${count} of 6 done. Each step ticks itself when it's really done.`;
 
@@ -132,7 +137,15 @@ async function main() {
       $("bot-mod").hidden = !saved?.chatBot;
       $("mod-cmd").textContent = `/mod ${cfg.twitchBot!.login}`;
     } else {
-      $("manual-why").textContent = !onTwitch
+      // X has no chat bots (Nightbot included): a pinned reply with the gift link does the job.
+      const onX = saved?.stream?.platform === "x";
+      $("x-chat").hidden = !onX;
+      $("nightbot-steps").hidden = onX;
+      $("nightbot-row").hidden = onX;
+      $("manual-done-text").textContent = onX ? "Done: my gift link is pinned on my live post" : "Done: !gift answers in my chat";
+      $("manual-why").textContent = onX
+        ? "Chat bots can't join X live chats, so viewers find you through the QR on screen and one pinned reply."
+        : !onTwitch
         ? "For YouTube and Kick, add Nightbot to your channel (free, 2 minutes):"
         : cfg.twitchBot && !proven
           ? "Connect with Twitch in step 2 first, and this becomes one switch. Or use Nightbot (free, 2 minutes):"
@@ -210,6 +223,10 @@ async function main() {
 
   // ---- step 3: OBS. Ticks when this creator's overlay is actually connected somewhere.
   $("obs-download").onclick = () => downloadObsSetup(overlayUrl);
+  mountObsConnect($("obs-connect"), overlayUrl, () => {
+    $("obs-next").hidden = false;
+    void pollOverlay();
+  });
   const pollOverlay = async () => {
     try {
       const { overlays } = (await (await fetch(`/api/creators/${me}/status`)).json()) as { overlays: number };

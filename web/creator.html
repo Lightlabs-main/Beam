@@ -47,6 +47,7 @@
             <option value="twitch">Twitch</option>
             <option value="youtube">YouTube</option>
             <option value="kick">Kick</option>
+            <option value="x">X</option>
             <option value="">I don't stream yet</option>
           </select>
           <div id="twitch-connect" hidden>
@@ -65,16 +66,26 @@
 
         <section class="card step" id="step-obs">
           <h2><span class="num">3</span> Put Beam on your stream (OBS)</h2>
-          <button id="obs-download" type="button">⬇ Download my OBS setup</button>
-          <ol class="howto">
-            <li>In OBS, open the <b>Scene Collection</b> menu at the top → <b>Import</b>.</li>
-            <li>Click <b>…</b>, choose <b>Beam-OBS-setup.json</b> from Downloads, tick it, click <b>Import</b>.</li>
-            <li><b>Scene Collection</b> → <b>Beam</b>. Double-click <b>Camera</b> and pick your webcam.</li>
-          </ol>
+          <p class="muted small">Adds Beam on top of the scene you stream with. Your own scenes stay as they are.</p>
+          <div id="obs-connect"></div>
           <p class="status" id="obs-status">Waiting for your overlay to connect…</p>
+          <p class="small" id="obs-next" hidden>Now send yourself a test gift in <a href="#step-test">step 5</a> and watch it pop up in OBS.</p>
+          <p class="muted small" id="obs-x" hidden>
+            Streaming to X? In OBS <b>Settings</b> → <b>Stream</b>, set Service to <b>Custom</b> and paste the Server URL and
+            Stream key from <a href="https://x.com/i/live-studio" target="_blank" rel="noopener">X Live Studio</a> (needs X Premium).
+          </p>
           <details>
-            <summary>Add it by hand instead</summary>
-            <p class="muted small">Sources → <b>+</b> → <b>Browser</b>, paste this URL, width <b>1920</b>, height <b>1080</b>:</p>
+            <summary>New to OBS? Download a ready-made scene instead</summary>
+            <button id="obs-download" type="button">⬇ Download my OBS setup</button>
+            <ol class="howto">
+              <li>In OBS, open the <b>Scene Collection</b> menu at the top → <b>Import</b>.</li>
+              <li>Click <b>…</b>, choose <b>Beam-OBS-setup.json</b> from Downloads, tick it, click <b>Import</b>.</li>
+              <li><b>Scene Collection</b> → <b>Beam</b>. Double-click <b>Camera</b> and pick your webcam.</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Add it by hand instead (Streamlabs, Meld and other apps)</summary>
+            <p class="muted small">Add a <b>Browser</b> source (OBS: Sources → <b>+</b> → <b>Browser</b>), paste this URL, width <b>1920</b>, height <b>1080</b>:</p>
             <div class="addr">
               <input id="overlay-url" readonly aria-label="Overlay URL" />
               <button class="inline" id="overlay-copy" type="button">Copy</button>
@@ -98,15 +109,24 @@
           </div>
           <div id="chat-manual" hidden>
             <p class="muted small" id="manual-why"></p>
-            <ol class="howto">
+            <div id="x-chat" hidden>
+              <ol class="howto">
+                <li>When you go live on X, reply to your live post with this and <b>pin</b> it:</li>
+              </ol>
+              <div class="addr">
+                <input id="x-post" readonly aria-label="Post for X" />
+                <button class="inline" id="x-post-copy" type="button">Copy</button>
+              </div>
+            </div>
+            <ol class="howto" id="nightbot-steps">
               <li>Go to <a href="https://nightbot.tv" target="_blank" rel="noopener">nightbot.tv</a>, log in with your streaming account, and click <b>Join Channel</b>.</li>
               <li>In your chat, paste this once:</li>
             </ol>
-            <div class="addr">
+            <div class="addr" id="nightbot-row">
               <input id="nightbot" readonly />
               <button class="inline" id="nightbot-copy" type="button">Copy</button>
             </div>
-            <label style="font-weight: 400; margin-top: 12px"><input type="checkbox" id="manual-done" style="width: auto" /> Done: <span class="mono">!gift</span> answers in my chat</label>
+            <label style="font-weight: 400; margin-top: 12px"><input type="checkbox" id="manual-done" style="width: auto" /> <span id="manual-done-text">Done: <span class="mono">!gift</span> answers in my chat</span></label>
           </div>
         </section>
 

@@ -8,9 +8,9 @@ export type SplitShare = { address: Address; bps: number; label: string };
 
 /**
  * Where the creator goes live, so their watch page can embed it. `channel` is the Twitch or Kick
- * channel name, or for YouTube a channel id (UC…) or a live video id.
+ * channel name, the X username, or for YouTube a channel id (UC…) or a live video id.
  */
-export type StreamLink = { platform: "twitch" | "youtube" | "kick"; channel: string };
+export type StreamLink = { platform: "twitch" | "youtube" | "kick" | "x"; channel: string };
 
 /** A creator's public settings. The creator signs them; the server only stores and serves them. */
 export type CreatorConfig = {
@@ -31,12 +31,17 @@ const CHANNEL_PATTERNS: Record<StreamLink["platform"], RegExp> = {
   kick: /^[A-Za-z0-9_-]{2,25}$/,
   // A channel id (UC + 22) or an 11-character video id.
   youtube: /^(UC[A-Za-z0-9_-]{22}|[A-Za-z0-9_-]{11})$/,
+  // The username, not a broadcast link: those change every stream.
+  x: /^[A-Za-z0-9_]{1,15}$/,
 };
+
+/** x.com paths that are pages, not usernames. */
+const X_RESERVED = new Set(["i", "home", "explore", "search", "notifications", "messages", "settings", "intent", "share"]);
 
 /**
  * Turns what a creator pastes (a URL or a bare name/id) into a StreamLink, or null if it isn't one.
  * Accepts twitch.tv/<name>, kick.com/<name>, youtube.com/channel/UC…, youtube.com/watch?v=…,
- * youtu.be/…, youtube.com/live/….
+ * youtu.be/…, youtube.com/live/…, x.com/<name> and twitter.com/<name>.
  */
 export function parseStreamLink(platform: StreamLink["platform"], input: string): StreamLink | null {
   let v = input.trim();
@@ -46,6 +51,7 @@ export function parseStreamLink(platform: StreamLink["platform"], input: string)
     const parts = u.pathname.split("/").filter(Boolean);
     if (platform === "twitch" && host === "twitch.tv" && parts[0]) v = parts[0];
     if (platform === "kick" && host === "kick.com" && parts[0]) v = parts[0];
+    if (platform === "x" && (host === "x.com" || host === "twitter.com") && parts[0] && !X_RESERVED.has(parts[0].toLowerCase())) v = parts[0];
     if (platform === "youtube") {
       if (host === "youtu.be" && parts[0]) v = parts[0];
       else if (host === "youtube.com") {

@@ -171,14 +171,15 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
     const url = new URL(req.url ?? "/", "http://localhost");
     const path = url.pathname;
     // These pages handle passkeys and recovery material. Keep the browser boundary explicit even
-    // when the process is behind Caddy, and allow the watch page's known platform frames.
+    // when the process is behind Caddy, and allow the watch page's known platform frames. The local
+    // ws:// sources let the setup pages add the overlay to OBS on the streamer's own computer.
     res.setHeader("x-content-type-options", "nosniff");
     res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
     res.setHeader("permissions-policy", "camera=(self), microphone=(self), publickey-credentials-get=(self), publickey-credentials-create=(self)");
     res.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains");
     res.setHeader(
       "content-security-policy",
-      "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https: wss:; frame-src 'self' https://player.twitch.tv https://www.twitch.tv https://www.youtube.com https://www.youtube-nocookie.com https://player.kick.com https://kick.com",
+      "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https: wss: ws://127.0.0.1:* ws://localhost:*; frame-src 'self' https://player.twitch.tv https://www.twitch.tv https://www.youtube.com https://www.youtube-nocookie.com https://player.kick.com https://kick.com",
     );
     try {
       if (req.method === "GET" && path === "/healthz") {

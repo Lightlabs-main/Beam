@@ -17,7 +17,7 @@ on from outside settle slowly, exclude regions, and can't do anything a bank tra
 
 ## How it works
 
-1. **Scan.** The creator adds one browser-source URL to OBS. Viewers scan its QR code.
+1. **Scan.** The creator clicks **Connect OBS** (or adds one browser-source URL). Viewers scan its QR code.
 2. **Passkey.** The viewer gets a wallet with Face ID, fingerprint or screen lock: no app, no seed
    phrase, no gas token.
 3. **Gift.** They pick an amount and a message. Their phone signs a USDC authorization; Beam's
@@ -82,7 +82,7 @@ Real transactions, all from wallets holding zero MON:
 | **USDC** (Circle) | What gets gifted, moved with EIP-3009 authorizations. |
 | **Gasless relay** (EIP-3009) | Beam's relayer submits viewers' signed authorizations and pays the gas. |
 | **Envio** HyperIndex | Indexes every gift, drop and claim: history, goal totals, recent gifts, and a backup alert feed. |
-| **OBS browser source** | The overlay, drawn into the video, so every platform's viewers see it without platform approval. |
+| **OBS browser source** | The overlay, drawn into the video, so every platform's viewers see it without platform approval. Added in one click over OBS's built-in WebSocket. |
 | **Funding** | Manual Monad USDC by default; an optional hosted on-ramp URL is enabled with `RAMP_URL` when provider credentials are available. |
 
 ## Architecture
@@ -147,8 +147,9 @@ event.
   Password Manager, 1Password). Wallets are bound to `beamstreams.xyz`; the recovery phrase is the
   backup.
 - **Bomb fairness.** One share per wallet, but passkey wallets are free to make.
-- **Platforms.** The overlay is a browser source, so it needs no extension review on Twitch, YouTube
-  or Kick.
+- **Platforms.** The overlay is a browser source, so it needs no extension review on Twitch, YouTube,
+  Kick or X. X live video and chat don't embed reliably, so the watch page links out to X and the
+  `!gift` bot is Twitch-only (Nightbot covers YouTube and Kick).
 
 ## Roadmap
 

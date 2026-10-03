@@ -22,6 +22,9 @@ function embedsFor(s: StreamLink): Embed {
     case "kick":
       // Kick's player embeds; its chat does not, so chat opens on Kick.
       return { player: `https://player.kick.com/${c}`, chat: null, page: `https://kick.com/${c}`, label: "on Kick" };
+    case "x":
+      // X live video doesn't reliably play embedded, and its chat never embeds: both open on X.
+      return { player: null, chat: null, page: `https://x.com/${c}`, label: "on X" };
     case "youtube": {
       const isChannel = s.channel.startsWith("UC") && s.channel.length === 24;
       return isChannel
@@ -78,6 +81,18 @@ async function main() {
   $("platform-badge").textContent = e.label;
   $("platform-badge").hidden = false;
   if (e.player) $("player").append(frame(e.player, `${name} live ${e.label}`));
+  else {
+    // No embeddable player: a big way out to the stream, with gifting still right here.
+    $("offline-text").textContent = `${name} streams ${e.label}. Watch there and send gifts here: they pop up live on stream.`;
+    const watch = document.createElement("a");
+    watch.className = "watch-out";
+    watch.href = e.page;
+    watch.target = "_blank";
+    watch.rel = "noopener";
+    watch.textContent = `▶ Watch live ${e.label}`;
+    $("offline").append(watch);
+    $("offline").hidden = false;
+  }
   const external = $("external");
   external.innerHTML = "";
   const a = document.createElement("a");

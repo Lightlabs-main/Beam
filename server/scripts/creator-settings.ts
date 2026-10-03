@@ -3,7 +3,7 @@
 //
 //   NAME="Beam Test Stream" GOAL=25 GOAL_TITLE="Recording goal" STREAM=twitch:channel \
 //     BEAM_URL=https://beamstreams.xyz pnpm --filter @beam/server exec tsx scripts/creator-settings.ts
-//   STREAM is platform:channel (twitch:name, kick:name, youtube:<channel id or live link>); omit for none.
+//   STREAM is platform:channel (twitch:name, kick:name, x:name, youtube:<channel id or live link>); omit for none.
 import { readFileSync } from "node:fs";
 import { type CreatorConfig, type StreamLink, deployment, parseStreamLink, signCreatorConfig } from "@beam/shared";
 import type { Hex } from "viem";
