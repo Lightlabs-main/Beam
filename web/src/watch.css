@@ -1,13 +1,10 @@
-@import "@fontsource-variable/inter";
+@import "./theme.css";
 
 :root {
-  --bg: #0b0a14;
-  --panel: #15131f;
-  --edge: rgba(255, 255, 255, 0.1);
-  --ink: #f4f3fa;
-  --soft: rgba(244, 243, 250, 0.72);
-  --accent: #7c5cff;
-  --accent-2: #22d3ee;
+  --panel: var(--surface);
+  --edge: var(--line);
+  --accent: #2e5bff;
+  --accent-2: #38e1ff;
   color-scheme: dark;
 }
 * {
@@ -98,7 +95,7 @@ a {
   text-align: center;
   padding: 16px;
   color: var(--soft);
-  background: radial-gradient(600px 300px at 70% 20%, #1d1a35, #0b0a14);
+  background: radial-gradient(600px 300px at 70% 20%, #0f1838, #05070e);
   align-content: center;
   gap: 12px;
 }
@@ -113,7 +110,7 @@ a {
   font-weight: 800;
   color: #fff;
   text-decoration: none;
-  background: linear-gradient(90deg, var(--accent), #5b8cff);
+  background: var(--accent);
 }
 .external {
   margin: 8px 16px;

@@ -3,8 +3,8 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { type IncomingMessage, type ServerResponse, createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
-import { formatUsdc } from "@beam/shared";
-import { isAddress } from "viem";
+import { formatUsdc, testAlertMessage } from "@beam/shared";
+import { getAddress, isAddress, verifyMessage } from "viem";
 import { WebSocketServer, type WebSocket } from "ws";
 import type { Config } from "./config.js";
 import type { ChainGiftFeed, ClaimEvent } from "./chainfeed.js";
@@ -114,8 +114,8 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
     res.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
     res.end(
       `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
-        `<title>Beam · ${escapeHtml(title)}</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0a14;color:#f4f3fa;` +
-        `font:16px/1.5 system-ui,sans-serif;text-align:center;padding:16px}a{color:#22d3ee}</style></head>` +
+        `<title>Beam · ${escapeHtml(title)}</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#05070e;color:#eef2ff;` +
+        `font:16px/1.5 system-ui,sans-serif;text-align:center;padding:16px}a{color:#38e1ff}</style></head>` +
         `<body><main><h1>${escapeHtml(title)}</h1><p>${escapeHtml(body)}</p><p><a href="/">beamstreams.xyz</a></p></main></body></html>`,
     );
   };
@@ -125,8 +125,8 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
     res.writeHead(404, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache" });
     res.end(
       `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
-        `<title>Beam · Page not found</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b0a14;color:#f4f3fa;` +
-        `font:16px/1.5 system-ui,sans-serif;text-align:center;padding:16px}a{color:#22d3ee}</style></head>` +
+        `<title>Beam · Page not found</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#05070e;color:#eef2ff;` +
+        `font:16px/1.5 system-ui,sans-serif;text-align:center;padding:16px}a{color:#38e1ff}</style></head>` +
         `<body><main><h1>Nothing here</h1><p>This page doesn't exist on Beam.</p><p><a href="/">Go to beamstreams.xyz</a></p></main></body></html>`,
     );
   };
@@ -139,6 +139,8 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
           ? "/overlay.html"
           : pathname === "/wallet"
             ? "/wallet.html"
+            : pathname === "/setup"
+              ? "/setup.html"
             : pathname === "/creator"
               ? "/creator.html"
               : pathname === "/studio"
@@ -274,6 +276,30 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
         if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many requests from this address, try again in a minute" });
         return json(res, 200, await creators.put(configRoute[1]!, await readBody(req)));
       }
+      // Setup's free test: the creator signs a short message and their open overlays play a
+      // clearly marked test alert. No money moves, nothing is recorded, the goal doesn't count it.
+      const testRoute = /^\/api\/creators\/(0x[0-9a-fA-F]{40})\/test-alert$/.exec(path);
+      if (req.method === "POST" && testRoute) {
+        const creator = getAddress(testRoute[1]!);
+        const body = (await readBody(req)) as { ts?: unknown; signature?: unknown };
+        const ts = Number(body.ts);
+        if (!Number.isInteger(ts) || Math.abs(Date.now() / 1000 - ts) > 120) return json(res, 400, { error: "test request expired, try again" });
+        const ok =
+          typeof body.signature === "string" &&
+          (await verifyMessage({ address: creator, message: testAlertMessage(creator, ts), signature: body.signature as `0x${string}` }).catch(() => false));
+        if (!ok) return json(res, 401, { error: "signature doesn't match this wallet" });
+        const key = creator.toLowerCase();
+        if ((lastTest.get(key) ?? 0) > Date.now() - 4000) return json(res, 429, { error: "one test every few seconds" });
+        lastTest.set(key, Date.now());
+        const targets = byCreator.get(key);
+        const gift = {
+          id: `test-${ts}`, kind: "Direct", from: creator, channel: creator, to: creator, amount: "5000000",
+          displayName: "Beam test", message: "Your alerts work! 🎉", actionCode: 1, recipientLabel: null, slots: null, txHash: "", test: true,
+        };
+        const msg = JSON.stringify({ type: "gift", gift });
+        for (const ws of targets ?? []) if (ws.readyState === ws.OPEN) ws.send(msg);
+        return json(res, 200, { overlays: targets?.size ?? 0 });
+      }
       if (req.method === "POST" && path === "/api/relay/drop") {
         if (!allowRelay(clientIp(req))) return json(res, 429, { error: "too many gifts from this address, try again in a minute" });
         return json(res, 200, await relayer.relayDrop(await readBody(req)));
@@ -352,6 +378,7 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
 
   // Overlays subscribe per creator: ws(s)://host/ws?creator=0x...
   const wss = new WebSocketServer({ noServer: true });
+  const lastTest = new Map<string, number>();
   const byCreator = new Map<string, Set<WebSocket>>();
 
   server.on("upgrade", (req, socket, head) => {
@@ -426,3 +453,4 @@ export function createApp({ config, relayer, indexed, gifts, chain, creators, bo
 
   return server;
 }
+

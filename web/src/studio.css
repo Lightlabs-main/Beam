@@ -23,7 +23,7 @@ body {
   height: auto;
   max-height: 100vh;
   overflow: hidden;
-  background: radial-gradient(800px 500px at 70% 20%, #1d1a35, #0b0a14);
+  background: radial-gradient(800px 500px at 70% 20%, #0f1838, #05070e);
 }
 #camera {
   position: absolute;
@@ -88,7 +88,7 @@ button {
   font: inherit;
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: #1c1929;
+  background: #10172b;
   color: #f4f3fa;
   border-radius: 12px;
   padding: 10px 14px;
@@ -99,7 +99,7 @@ button.primary {
   border-color: transparent;
 }
 button:focus-visible {
-  outline: 2px solid #22d3ee;
+  outline: 2px solid #38e1ff;
   outline-offset: 2px;
 }
 .mic {
@@ -112,7 +112,7 @@ input {
   font: inherit;
   font-size: 15px;
   color: #f4f3fa;
-  background: #0e0c18;
+  background: #060a16;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 10px 12px;
@@ -127,7 +127,7 @@ label {
   color: rgba(244, 243, 250, 0.7);
 }
 .hint a {
-  color: #22d3ee;
+  color: #38e1ff;
 }
 .error {
   margin: 8px 0 0;

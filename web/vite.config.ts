@@ -16,13 +16,15 @@ export default defineConfig({
         studio: resolve(import.meta.dirname, "studio.html"),
         earnings: resolve(import.meta.dirname, "earnings.html"),
         watch: resolve(import.meta.dirname, "watch.html"),
+        setup: resolve(import.meta.dirname, "setup.html"),
       },
     },
   },
   server: {
+    // BEAM_API=https://testnet.beamstreams.xyz previews the frontend against a live backend.
     proxy: {
-      "/api": "http://localhost:8787",
-      "/ws": { target: "ws://localhost:8787", ws: true },
+      "/api": { target: process.env.BEAM_API ?? "http://localhost:8787", changeOrigin: true },
+      "/ws": { target: (process.env.BEAM_API ?? "http://localhost:8787").replace(/^http/, "ws"), ws: true, changeOrigin: true },
     },
   },
 });

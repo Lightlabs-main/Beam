@@ -1,0 +1,50 @@
+/* Beam design tokens, shared by every page. Colours come from the Beam mark:
+   electric blue body, cyan light trails, a magenta spark used sparingly. */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource-variable/jetbrains-mono";
+
+:root {
+  --bg: #05070e;
+  --surface: #0b1020;
+  --surface-2: #10172b;
+  --line: rgba(148, 170, 255, 0.1);
+  --line-strong: rgba(148, 170, 255, 0.2);
+  --ink: #eef2ff;
+  --soft: rgba(226, 232, 255, 0.7);
+  --faint: rgba(226, 232, 255, 0.46);
+  --blue: #2e5bff;
+  --blue-hi: #4672ff;
+  --cyan: #38e1ff;
+  --magenta: #d946ef;
+  --ok: #34d399;
+  --danger: #ff6b81;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --font-body: "Inter Variable", system-ui, sans-serif;
+  --font-display: "Space Grotesk Variable", "Inter Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(46, 91, 255, 0.45);
+}
+
+[hidden] {
+  display: none !important;
+}

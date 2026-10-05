@@ -1,4 +1,4 @@
-// Landing page: builds a creator's OBS overlay URL locally from their wallet address.
+// Quick setup (/setup): builds a creator's OBS overlay URL locally from their wallet address.
 import { parseUsdc } from "@beam/shared";
 import { downloadObsSetup } from "./obs.js";
 import { mountObsConnect } from "./obsconnect.js";
@@ -6,21 +6,14 @@ import { mountObsConnect } from "./obsconnect.js";
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const isAddress = (a: string) => /^0x[0-9a-fA-F]{40}$/.test(a);
 
-type ServerConfig = { network: "testnet" | "mainnet"; chainId: number; explorer: string };
-
 async function showNetwork() {
   try {
-    const cfg = (await (await fetch("/api/config")).json()) as ServerConfig;
-    const label = cfg.network === "mainnet" ? "Monad mainnet" : "Monad testnet";
+    const cfg = (await (await fetch("/api/config")).json()) as { network: "testnet" | "mainnet" };
     const net = $("net");
-    net.textContent = label;
+    net.textContent = cfg.network === "mainnet" ? "Monad" : "Monad testnet";
     net.hidden = false;
-    $("status").textContent =
-      cfg.network === "mainnet"
-        ? "Running on Monad mainnet."
-        : "Beam is running on Monad testnet while it is being built: gifts use test USDC. Gifting with a passkey wallet is next.";
   } catch {
-    $("status").textContent = "";
+    /* offline from the API: the builder still works */
   }
 }
 

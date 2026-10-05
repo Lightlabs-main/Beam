@@ -1,6 +1,7 @@
-// Creator setup (/creator): six steps, each ticking itself when it's really done.
-//   1 wallet (passkey) · 2 channel · 3 OBS (ticks when the overlay connects) · 4 !gift in chat
-//   5 test gift · 6 share. Goal and splits live under "More settings".
+// Creator setup (/creator): two taps to go live.
+//   1 wallet (passkey) · 2 connect OBS (ticks when the overlay connects) → live-ready, with a free
+//   test alert and the share links. Channel, !gift in chat, a real test gift, goal and splits are
+//   optional extras.
 import {
   BPS,
   type CreatorConfig,
@@ -12,6 +13,7 @@ import {
   parseUsdc,
   signCreatorConfig,
   signGift,
+  testAlertMessage,
   usdLabel,
 } from "@beam/shared";
 import { type Address, getAddress, isAddress } from "viem";
@@ -101,6 +103,10 @@ async function main() {
     render();
   }
 
+  // The name typed on the sign-in card becomes the channel name: no separate step for it.
+  const typedName = $<HTMLInputElement>("signup-name").value.trim();
+  if (!saved?.displayName && typedName) await save({ displayName: typedName }).catch((e) => console.error(e));
+
   const done = {
     channel: () => !!saved?.displayName,
     obs: false,
@@ -111,20 +117,25 @@ async function main() {
     test: () => local.get(`beam.testDone.${me}`) === "1",
   };
 
-  function mark(id: string, isDone: boolean, n: number) {
+  function mark(id: string, isDone: boolean, label: string) {
     $(id).classList.toggle("done", isDone);
-    $(id).querySelector(".num")!.textContent = isDone ? "✓" : String(n);
+    $(id).querySelector(".num")!.textContent = isDone ? "✓" : label;
   }
 
   function render() {
-    mark("step-channel", done.channel(), 2);
-    mark("step-obs", done.obs, 3);
-    mark("step-chat", done.chat(), 4);
-    mark("step-test", done.test(), 5);
-    mark("step-share", done.channel() && done.obs, 6);
+    mark("step-obs", done.obs, "2");
+    mark("step-channel", done.channel(), "•");
+    mark("step-chat", done.chat(), "•");
+    mark("step-test", done.test(), "•");
     $("obs-x").hidden = saved?.stream?.platform !== "x";
-    const count = 1 + [done.channel(), done.obs, done.chat(), done.test(), done.channel() && done.obs].filter(Boolean).length;
-    $("progress").textContent = count >= 6 ? "All set. Go live! 🎉" : `${count} of 6 done. Each step ticks itself when it's really done.`;
+    $("tap-1").className = "done";
+    $("tap-2").className = done.obs ? "done" : "on";
+    $("tap-3").className = done.obs ? "done" : "";
+    $("ready-head").hidden = !done.obs;
+    $("step-share").classList.toggle("live", done.obs);
+    $("progress").textContent = done.obs
+      ? "All set. Go live, and add the extras below whenever you like."
+      : "One more tap: connect OBS and you're live.";
 
     // Step 4 adapts to where they stream and whether Beam's bot is running.
     const onTwitch = saved?.stream?.platform === "twitch";
@@ -224,7 +235,6 @@ async function main() {
   // ---- step 3: OBS. Ticks when this creator's overlay is actually connected somewhere.
   $("obs-download").onclick = () => downloadObsSetup(overlayUrl);
   mountObsConnect($("obs-connect"), overlayUrl, () => {
-    $("obs-next").hidden = false;
     void pollOverlay();
   });
   const pollOverlay = async () => {
@@ -258,7 +268,33 @@ async function main() {
     render();
   };
 
-  // ---- step 5: a real, minimum-size gift to yourself; the overlay alert comes from its event.
+  // ---- free test: signed by the wallet, plays a marked alert on the open overlays, moves no money.
+  $("test-alert").onclick = async () => {
+    const button = $<HTMLButtonElement>("test-alert");
+    const result = $("test-alert-result");
+    button.disabled = true;
+    try {
+      const ts = Math.floor(Date.now() / 1000);
+      const signature = await wallet.account.signMessage!({ message: testAlertMessage(me, ts) });
+      const r = await fetch(`/api/creators/${me}/test-alert`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ts, signature }),
+      });
+      const body = (await r.json()) as { overlays?: number; error?: string };
+      if (!r.ok) throw new Error(body.error ?? `failed (${r.status})`);
+      result.textContent = body.overlays
+        ? "Sent. Look at OBS: the alert should be on screen now."
+        : "Sent, but no overlay is open. Connect OBS above (or open Beam Studio) and try again.";
+    } catch (e) {
+      result.textContent = e instanceof Error ? e.message : String(e);
+    } finally {
+      result.hidden = false;
+      button.disabled = false;
+    }
+  };
+
+  // ---- extra: a real, minimum-size gift to yourself; the overlay alert comes from its event.
   const testUnits = parseUsdc(cfg.minGiftUsdc);
   $("test-amount").textContent = usdLabel(testUnits);
   const showBalance = async () => {

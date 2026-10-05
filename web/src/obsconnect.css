@@ -8,14 +8,14 @@
 .obs-connect p,
 .obs-connect ol {
   font-size: 14px;
-  color: rgba(244, 243, 250, 0.72);
+  color: var(--soft, rgba(226, 232, 255, 0.7));
   margin: 8px 0 0;
 }
 .obs-connect ol {
   padding-left: 20px;
 }
 .obs-connect b {
-  color: #f4f3fa;
+  color: var(--ink, #eef2ff);
 }
 .obs-connect .obs-help,
 .obs-connect .obs-pass {
@@ -32,25 +32,25 @@
   display: block;
   font-weight: 700;
   font-size: 14px;
-  color: #f4f3fa;
+  color: var(--ink, #eef2ff);
 }
 .obs-connect input {
   margin-top: 8px;
 }
 .obs-connect .obs-msg {
   font-weight: 600;
-  color: #ff7a8a;
+  color: var(--danger, #ff6b81);
 }
 .obs-connect .obs-msg.ok {
-  color: #3ddc97;
+  color: var(--ok, #34d399);
 }
 .obs-connect .obs-drag {
   display: inline-block;
   margin-left: 4px;
   padding: 4px 10px;
-  border: 1px dashed rgba(124, 92, 255, 0.8);
+  border: 1px dashed rgba(46, 91, 255, 0.8);
   border-radius: 8px;
-  color: #f4f3fa;
+  color: var(--ink, #eef2ff);
   font-weight: 700;
   text-decoration: none;
   cursor: grab;

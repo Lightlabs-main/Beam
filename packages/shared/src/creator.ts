@@ -125,3 +125,7 @@ export async function verifyCreatorConfig(d: Deployment, c: CreatorConfig, signa
     signature,
   });
 }
+
+/** What a creator signs (EIP-191) to fire a free test alert on their own overlays. */
+export const testAlertMessage = (creator: string, ts: number) =>
+  `Beam: show a test alert on my overlay.\nWallet: ${getAddress(creator)}\nTime: ${ts}`;

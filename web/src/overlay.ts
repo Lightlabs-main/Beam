@@ -17,6 +17,8 @@ type Gift = {
   payouts?: { recipient: string; amount: string }[];
   slots: number | null;
   txHash: string;
+  /** A free test from setup: alert only, never counted. */
+  test?: boolean;
 };
 
 const params = new URLSearchParams(location.search);
@@ -236,6 +238,7 @@ function connect(attempt = 0) {
     if (msg.type !== "gift" || !msg.gift) return;
     const gift = msg.gift;
     enqueueAlert(gift);
+    if (gift.test) return;
     pushRecent(gift);
     if (goalTarget !== null) {
       const got = receivedBy(gift);

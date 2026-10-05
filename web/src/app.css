@@ -1,36 +1,23 @@
-@import "@fontsource-variable/inter";
+@import "./theme.css";
 
-/* Viewer-facing pages (gift, wallet): phone first, one column, big touch targets. */
+/* App pages (gift, wallet, creator, claim, earnings, setup): phone first, one column, big touch targets. */
 :root {
-  --bg: #0b0a14;
-  --panel: #15131f;
-  --panel-2: #1c1929;
-  --edge: rgba(255, 255, 255, 0.1);
-  --ink: #f4f3fa;
-  --soft: rgba(244, 243, 250, 0.72);
-  --accent: #7c5cff;
-  --accent-2: #22d3ee;
-  --ok: #3ddc97;
-  --danger: #ff7a8a;
-  color-scheme: dark;
-}
-
-* {
-  box-sizing: border-box;
+  --panel: var(--surface);
+  --panel-2: var(--surface-2);
+  --edge: var(--line);
+  --accent: var(--blue);
+  --accent-2: var(--cyan);
 }
 
 body {
-  margin: 0;
-  min-height: 100vh;
-  background: radial-gradient(800px 400px at 90% -10%, rgba(124, 92, 255, 0.25), transparent 60%), var(--bg);
-  color: var(--ink);
-  font-family: "Inter Variable", system-ui, sans-serif;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+  background: radial-gradient(700px 380px at 85% -8%, rgba(46, 91, 255, 0.22), transparent 65%),
+    radial-gradient(500px 300px at -10% 0, rgba(56, 225, 255, 0.06), transparent 65%), var(--bg);
+  background-attachment: fixed;
 }
 
 a {
-  color: var(--accent-2);
+  color: var(--cyan);
+  text-underline-offset: 3px;
 }
 
 .wrap {
@@ -49,8 +36,10 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-weight: 700;
   font-size: 20px;
+  letter-spacing: -0.03em;
   color: var(--ink);
   text-decoration: none;
 }
@@ -58,7 +47,6 @@ a {
   width: 25px;
   height: 25px;
   object-fit: contain;
-  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.28));
 }
 .section-head {
   display: flex;
@@ -75,18 +63,33 @@ a {
   color: var(--soft);
 }
 
+h1,
+h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
 h1 {
   margin: 0;
-  font-size: 30px;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-size: 32px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+.back {
+  display: inline-block;
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: var(--faint);
+  text-decoration: none;
+}
+.back:hover {
+  color: var(--ink);
 }
 .sub {
   margin: 6px 0 20px;
   color: var(--soft);
 }
 .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.92em;
 }
 
@@ -94,8 +97,16 @@ h1 {
   background: var(--panel);
   border: 1px solid var(--edge);
   border-radius: 20px;
-  padding: 18px;
+  padding: 20px;
   margin-bottom: 14px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 20px 40px -24px rgba(0, 0, 0, 0.7);
+  animation: rise 0.5s var(--ease) both;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 .card h2 {
   margin: 0 0 6px;
@@ -126,7 +137,8 @@ select {
   font: inherit;
   font-size: 16px; /* no zoom-on-focus on iOS */
   color: var(--ink);
-  background: #0e0c18;
+  background: #060a16;
+  transition: border-color 0.15s, box-shadow 0.15s;
   border: 1px solid var(--edge);
   border-radius: 12px;
   padding: 12px 14px;
@@ -136,9 +148,11 @@ textarea {
   min-height: 72px;
 }
 input:focus,
-textarea:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(46, 91, 255, 0.3);
 }
 
 button {
@@ -151,16 +165,25 @@ button {
   width: 100%;
   cursor: pointer;
   color: #fff;
-  background: linear-gradient(90deg, var(--accent), #5b8cff);
+  background: var(--blue);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14) inset, 0 10px 26px -10px rgba(46, 91, 255, 0.8);
   margin-top: 16px;
+  transition: background 0.15s, transform 0.15s var(--ease);
+}
+button:hover:not(:disabled) {
+  background: var(--blue-hi);
+}
+button:active:not(:disabled) {
+  transform: scale(0.985);
 }
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 button.ghost {
-  background: transparent;
-  border: 1px solid var(--edge);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line-strong);
+  box-shadow: none;
   color: var(--ink);
   font-size: 15px;
   padding: 12px;
@@ -205,8 +228,9 @@ button:focus-visible {
   padding: 12px 14px;
 }
 .chip .bal {
-  font-size: 22px;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -217,6 +241,7 @@ button:focus-visible {
 }
 .amounts button {
   margin: 0;
+  box-shadow: none;
   background: var(--panel-2);
   border: 1px solid var(--edge);
   font-size: 20px;
@@ -231,8 +256,9 @@ button:focus-visible {
   padding: 12px 4px;
 }
 .amounts button[aria-pressed="true"] {
-  background: linear-gradient(135deg, var(--accent), #5b8cff);
+  background: var(--blue);
   border-color: transparent;
+  box-shadow: 0 0 24px -4px rgba(46, 91, 255, 0.7);
 }
 
 .addr {
@@ -242,7 +268,7 @@ button:focus-visible {
   margin-top: 10px;
 }
 .addr input {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 
@@ -272,7 +298,7 @@ button:focus-visible {
   background: var(--panel-2);
   border-radius: 8px;
   padding: 6px 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 .phrase li::before {
@@ -297,9 +323,6 @@ button:focus-visible {
   }
 }
 
-[hidden] {
-  display: none !important;
-}
 
 /* Inside the watch page: the watch page already has the header. */
 body.embed .top {
